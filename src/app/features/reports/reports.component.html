@@ -2,20 +2,24 @@
       <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem;">
         <div>
           <h1 class="page-title">{{ 'REPORTS.TITLE' | translate }}</h1>
-          <p class="page-subtitle">Analytics and exportable reports</p>
+          <p class="page-subtitle">{{ 'UI.ANALYTICS_AND_EXPORTABLE_REPORTS' | translate }}</p>
         </div>
         <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;">
-          <p-calendar [(ngModel)]="dateRange" selectionMode="range" [readonlyInput]="true" [placeholder]="'REPORTS.DATE_RANGE' | translate" [style]="{ minWidth: '220px' }"></p-calendar>
-          <button pButton icon="pi pi-file" [label]="'REPORTS.EXPORT_CSV' | translate" class="p-button-outlined p-button-sm" (click)="exportCsv()"></button>
-          <button pButton icon="pi pi-file-excel" [label]="'REPORTS.EXPORT_EXCEL' | translate" class="p-button-outlined p-button-sm" (click)="exportExcel()"></button>
-          <button pButton icon="pi pi-print" [label]="'REPORTS.PRINT' | translate" class="p-button-text p-button-sm" (click)="printReport()"></button>
+          <button pButton icon="pi pi-file" [label]="'REPORTS.EXPORT_CSV' | translate" class="p-button-outlined p-button-sm" (click)="exportCsv()" [disabled]="reportLoading() || !currentReport()"></button>
+          <button pButton icon="pi pi-file-excel" [label]="'REPORTS.EXPORT_EXCEL' | translate" class="p-button-outlined p-button-sm" (click)="exportExcel()" [disabled]="reportLoading() || !currentReport()"></button>
+          <button pButton icon="pi pi-print" [label]="'REPORTS.PRINT' | translate" class="p-button-text p-button-sm" [disabled]="!currentReport() || reportLoading() || reportError()" (click)="printReport()"></button>
         </div>
       </div>
 
+      <div class="report-date-filter" *ngIf="activeTabIndex !== 0 || inventoryType !== 'category'">
+        <label for="report-dates">{{ 'UI.DATE_RANGE' | translate }}</label>
+        <p-calendar inputId="report-dates" [(ngModel)]="dateRange" selectionMode="range" [readonlyInput]="true" [showIcon]="true" [showClear]="true" appendTo="body" (onSelect)="dateRange?.[1] && loadCurrentReport()" (onClear)="loadCurrentReport()" [placeholder]="'UI.ALL_DATES' | translate"></p-calendar>
+      </div>
       <p-tabView (onChange)="onTabChange($event)" styleClass="settings-tabs">
         <p-tabPanel [header]="'REPORTS.INVENTORY_REPORTS' | translate">
+          <p>{{ 'API_FIXES.VALUATION_NOTE' | translate }}</p>
           <div style="margin-bottom:1rem;">
-            <p-dropdown [options]="inventoryReportTypes" [(ngModel)]="inventoryType" (onChange)="loadInventoryReport()" optionLabel="label" optionValue="value" [style]="{ minWidth: '200px' }"></p-dropdown>
+            <p-dropdown [options]="inventoryReportTypes | uiOptions" [(ngModel)]="inventoryType" (onChange)="loadInventoryReport()" optionLabel="label" optionValue="value" [style]="{ minWidth: '200px' }"></p-dropdown>
           </div>
           <ng-container *ngTemplateOutlet="reportTemplate; context: { report: currentReport() }"></ng-container>
         </p-tabPanel>
@@ -31,30 +35,34 @@
       </p-tabView>
 
       <ng-template #reportTemplate let-report="report">
+        <div *ngIf="reportError()" role="alert">
+          <p>{{ 'API_FIXES.REPORT_FAILED' | translate }}</p>
+          <button pButton class="p-button-outlined" [label]="'API_FIXES.RETRY' | translate" (click)="loadCurrentReport()"></button>
+        </div>
         <div *ngIf="reportLoading()" style="padding:2rem;text-align:center;color:var(--text-muted);">{{ 'COMMON.LOADING' | translate }}</div>
         <div *ngIf="!reportLoading() && report" id="report-content">
           <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:1rem;margin-bottom:1.5rem;" *ngIf="report.summary">
             <div class="kpi-card primary" *ngFor="let key of summaryKeys(report.summary)">
               <div class="kpi-value" style="font-size:1.25rem;">{{ report.summary[key] }}</div>
-              <div class="kpi-label">{{ formatKey(key) }}</div>
+              <div class="kpi-label">{{ formatKey(key) | uiLabel }}</div>
             </div>
           </div>
           <div class="section-card">
-            <div class="section-card-header"><h3>{{ report.title }}</h3></div>
+            <div class="section-card-header"><h3>{{ report.title | uiLabel }}</h3></div>
             <p-table [value]="report.rows" styleClass="p-datatable-sm">
               <ng-template pTemplate="header">
-                <tr><th>Label</th><th>Value</th><th>Trend</th><th>Category</th></tr>
+                <tr><th>{{ 'UI.LABEL' | translate }}</th><th>{{ 'UI.VALUE' | translate }}</th><th>{{ 'UI.TREND' | translate }}</th><th>{{ 'UI.CATEGORY' | translate }}</th></tr>
               </ng-template>
               <ng-template pTemplate="body" let-row>
                 <tr>
                   <td><span style="font-weight:500;">{{ row.label }}</span></td>
                   <td>{{ row.value }}</td>
                   <td>
-                    <p-tag *ngIf="row.trend !== undefined" [value]="(row.trend > 0 ? '+' : '') + row.trend + '%'"
+                    <p-tag *ngIf="row.trend != null" [value]="(row.trend > 0 ? '+' : '') + row.trend + '%'"
                       [severity]="row.trend > 0 ? 'success' : row.trend < 0 ? 'danger' : 'info'"></p-tag>
-                    <span *ngIf="row.trend === undefined">â€”</span>
+                    <span *ngIf="row.trend == null">—</span>
                   </td>
-                  <td><span style="font-size:0.82rem;color:var(--text-muted);">{{ row.category ?? 'â€”' }}</span></td>
+                  <td><span style="font-size:0.82rem;color:var(--text-muted);">{{ row.category ?? '—' }}</span></td>
                 </tr>
               </ng-template>
             </p-table>

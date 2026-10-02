@@ -4,7 +4,7 @@
         class="mobile-nav-backdrop"
         *ngIf="mobileMenuOpen()"
         (click)="closeMobileMenu()"
-        aria-label="Close navigation menu"
+        [attr.aria-label]="'UI.CLOSE_NAVIGATION_MENU' | translate"
       ></button>
       <div class="wms-content">
         <app-topbar></app-topbar>

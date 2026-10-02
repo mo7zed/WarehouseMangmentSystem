@@ -18,14 +18,6 @@ export class SettingsService {
     return this.warehouseService.createWarehouse(data);
   }
 
-  updateWarehouse(id: string, data: any) {
-    return this.warehouseService.updateWarehouse(id, data);
-  }
-
-  deleteWarehouse(id: string) {
-    return this.warehouseService.deleteWarehouse(id);
-  }
-
   activateWarehouse(id: string) {
     return this.warehouseService.activateWarehouse(id);
   }

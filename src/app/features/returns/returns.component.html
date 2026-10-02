@@ -1,88 +1,50 @@
 <div class="returns-page animate-fade-in">
-      <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem;">
-        <div>
-          <h1 class="page-title">{{ 'RETURNS.TITLE' | translate }}</h1>
-          <p class="page-subtitle">{{ returns().length }} return requests</p>
-        </div>
-        <button pButton icon="pi pi-plus" [label]="'RETURNS.CREATE_RETURN' | translate" class="p-button-sm" (click)="openCreateDialog()"></button>
-      </div>
+  <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1.5rem;">
+    <div><h1 class="page-title">{{ 'UI.RETURN_AUTHORIZATIONS' | translate }}</h1><p class="page-subtitle">{{ 'UI.RETURNS_COUNT' | translate:{count: returns().length} }}</p></div>
+    <button pButton icon="pi pi-plus" [label]="'UI.CREATE_RETURN' | translate" class="p-button-sm" (click)="openCreateDialog()"></button>
+  </div>
+  <p-table [value]="returns()" [loading]="loading()" styleClass="p-datatable-sm" [scrollable]="true">
+    <ng-template pTemplate="header"><tr><th>{{ 'UI.RMA_ID' | translate }}</th><th>{{ 'UI.ORDER_ID' | translate }}</th><th>{{ 'UI.CUSTOMER_ID' | translate }}</th><th>{{ 'UI.LINES' | translate }}</th><th>{{ 'UI.STATUS' | translate }}</th><th>{{ 'UI.CREATED' | translate }}</th><th>{{ 'UI.ACTIONS' | translate }}</th></tr></ng-template>
+    <ng-template pTemplate="body" let-ret><tr>
+      <td><code>{{ shortId(ret.id) }}</code></td><td><code>{{ shortId(ret.originalOrderId) }}</code></td><td><code>{{ shortId(ret.customerId) }}</code></td><td>{{ ret.lines.length }}</td>
+      <td><p-tag [value]="statusLabel(ret.status) | uiLabel" [severity]="severity(ret.status)"></p-tag></td><td>{{ ret.createdAt | date:'MMM d, y, HH:mm' }}</td>
+      <td><button pButton icon="pi pi-eye" [label]="'UI.DETAILS' | translate" class="p-button-sm p-button-outlined" (click)="openDetails(ret)"></button></td>
+    </tr></ng-template>
+    <ng-template pTemplate="emptymessage"><tr><td colspan="7" style="text-align:center;padding:2rem;">{{ 'UI.NO_RETURNS_WERE_FOUND_FOR_THE_SELECTED_WAREHOUSE_USE_THE_WAREHOUSE_SELECTOR_ABOVE_THEN_REFRESH_THIS_PAGE' | translate }}</td></tr></ng-template>
+  </p-table>
+  <nav class="action-bar" style="justify-content:center;margin-top:1rem;" [attr.aria-label]="'UI.PAGES' | translate">
+    <button pButton class="p-button-outlined" [label]="'UI.PREVIOUS' | translate" [disabled]="loading() || page === 1" (click)="changePage(-1)"></button>
+    <span>{{ 'UI.PAGE' | translate }} {{ page }}</span>
+    <button pButton class="p-button-outlined" [label]="'UI.NEXT' | translate" [disabled]="loading() || !hasNext()" (click)="changePage(1)"></button>
+  </nav>
+</div>
 
-      <p-tabView>
-        <p-tabPanel header="Return Requests">
-          <p-table [value]="returns()" [loading]="loading()" styleClass="p-datatable-sm" [paginator]="true" [rows]="10">
-            <ng-template pTemplate="header">
-              <tr>
-                <th>{{ 'RETURNS.RMA_NUMBER' | translate }}</th>
-                <th>{{ 'RETURNS.ORDER_NUMBER' | translate }}</th>
-                <th>{{ 'RETURNS.CUSTOMER' | translate }}</th>
-                <th>{{ 'RETURNS.REASON' | translate }}</th>
-                <th>{{ 'RETURNS.STATUS' | translate }}</th>
-                <th>Created</th>
-                <th>{{ 'COMMON.ACTIONS' | translate }}</th>
-              </tr>
-            </ng-template>
-            <ng-template pTemplate="body" let-ret>
-              <tr>
-                <td><code style="color:var(--brand-accent);font-weight:600;">{{ ret.rmaNumber }}</code></td>
-                <td>{{ ret.orderNumber }}</td>
-                <td>{{ ret.customerName }}</td>
-                <td><span style="font-size:0.82rem;">{{ ret.reasonDescription }}</span></td>
-                <td><p-tag [value]="ret.status | titlecase" [severity]="getReturnSeverity(ret.status)"></p-tag></td>
-                <td><span style="font-size:0.8rem;color:var(--text-muted);">{{ ret.createdAt | date:'MMM d, yyyy' }}</span></td>
-                <td>
-                  <div style="display:flex;gap:0.35rem;">
-                    <button pButton icon="pi pi-cog" [label]="'RETURNS.DISPOSITION' | translate" class="p-button-sm p-button-outlined"
-                      *ngIf="ret.status === 'received' || ret.status === 'inspected'"
-                      (click)="openDisposition(ret)"></button>
-                    <button pButton icon="pi pi-check" label="Complete" class="p-button-sm"
-                      *ngIf="ret.status === 'dispositioned'" (click)="completeReturn(ret)"></button>
-                  </div>
-                </td>
-              </tr>
-            </ng-template>
-          </p-table>
-        </p-tabPanel>
-      </p-tabView>
-
-      <!-- Create Return Dialog -->
-      <p-dialog [(visible)]="showCreateDialog" [modal]="true" [style]="{width:'550px'}" [header]="'RETURNS.CREATE_RETURN' | translate">
-        <div style="display:flex;flex-direction:column;gap:1rem;padding:0.5rem 0;">
-          <div class="form-field"><label>{{ 'RETURNS.ORDER_NUMBER' | translate }}</label><input pInputText [(ngModel)]="newReturn.orderNumber" placeholder="ORD-2024-08001" /></div>
-          <div class="form-field"><label>{{ 'RETURNS.CUSTOMER' | translate }}</label><input pInputText [(ngModel)]="newReturn.customerName" /></div>
-          <div class="form-field"><label>Reason Code</label>
-            <p-dropdown [options]="reasonOptions" [(ngModel)]="newReturn.reasonCode" optionLabel="label" optionValue="value" styleClass="w-full"></p-dropdown>
-          </div>
-          <div class="form-field"><label>Description</label>
-            <textarea pInputTextarea [(ngModel)]="newReturn.reasonDescription" rows="3" style="width:100%;"></textarea>
-          </div>
-        </div>
-        <ng-template pTemplate="footer">
-          <button pButton [label]="'COMMON.CANCEL' | translate" class="p-button-text" (click)="showCreateDialog = false"></button>
-          <button pButton [label]="'COMMON.SAVE' | translate" (click)="createReturn()"></button>
-        </ng-template>
-      </p-dialog>
-
-      <!-- Disposition Dialog -->
-      <p-dialog [(visible)]="showDispositionDialog" [modal]="true" [style]="{width:'600px'}" [header]="'RETURNS.DISPOSITION' | translate">
-        <div *ngIf="selectedReturn">
-          <p style="margin-bottom:1rem;font-size:0.85rem;color:var(--text-secondary);">RMA: <strong>{{ selectedReturn.rmaNumber }}</strong></p>
-          <p-table [value]="selectedReturn.items" styleClass="p-datatable-sm">
-            <ng-template pTemplate="header">
-              <tr><th>SKU</th><th>Item</th><th>Qty</th><th>Condition</th><th>{{ 'RETURNS.DISPOSITION' | translate }}</th></tr>
-            </ng-template>
-            <ng-template pTemplate="body" let-item>
-              <tr>
-                <td>{{ item.sku }}</td>
-                <td>{{ item.itemName }}</td>
-                <td>{{ item.quantity }}</td>
-                <td><p-tag [value]="item.condition | titlecase" [severity]="item.condition === 'good' ? 'success' : 'danger'"></p-tag></td>
-                <td>
-                  <p-dropdown [options]="dispositionOptions" [(ngModel)]="item.disposition" optionLabel="label" optionValue="value"
-                    placeholder="Select" [style]="{ minWidth: '140px' }" (onChange)="setDisposition(item.id, item.disposition)"></p-dropdown>
-                </td>
-              </tr>
-            </ng-template>
-          </p-table>
-        </div>
-      </p-dialog>
+<p-dialog [(visible)]="showCreateDialog" [modal]="true" [style]="{width:'760px',maxWidth:'95vw'}" [header]="'UI.CREATE_RETURN_AUTHORIZATION' | translate">
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:1rem;padding:.5rem 0;">
+    <div class="form-field"><label for="return-order">{{ 'UX.ORDER' | translate }}</label><select id="return-order" class="p-inputtext w-full" [ngModel]="createForm.originalOrderId" (ngModelChange)="selectOrder($event)" [disabled]="choicesLoading()"><option value="">{{ 'UX.SELECT_ORDER' | translate }}</option><option *ngFor="let order of orderOptions()" [value]="order.id">{{ order.orderNumber }} — {{ order.customerName }}</option></select><small *ngIf="!choicesLoading() && !orderOptions().length">{{ 'UX.NO_ORDERS' | translate }}</small></div>
+    <div class="form-field"><label for="return-shipment">{{ 'UX.SHIPMENT' | translate }}</label><select id="return-shipment" class="p-inputtext w-full" [(ngModel)]="createForm.originalShipmentId" [disabled]="shipmentsLoading() || !selectedOrder()"><option value="">{{ 'UX.NO_SHIPMENT' | translate }}</option><option *ngFor="let shipment of shipmentOptions()" [value]="shipment.id">{{ shipmentLabel(shipment) }}</option></select><div *ngIf="selectedOrder()"><button pButton class="p-button-text p-button-sm" [label]="'UI.PREVIOUS' | translate" [disabled]="shipmentPage === 1 || shipmentsLoading()" (click)="loadShipments(shipmentPage - 1)"></button><small>{{ 'UX.SHIPMENT_PAGE' | translate:{page:shipmentPage} }}</small><button pButton class="p-button-text p-button-sm" [label]="'UI.NEXT' | translate" [disabled]="!shipmentHasNext || shipmentsLoading()" (click)="loadShipments(shipmentPage + 1)"></button></div></div>
+    <div class="form-field"><label for="return-customer">{{ 'UX.CUSTOMER' | translate }}</label><input id="return-customer" pInputText [value]="selectedOrder()?.customerName ?? ''" readonly /><small>{{ 'UX.ORDER_FIRST' | translate }}</small></div>
+    <div class="form-field"><label>{{ 'UI.NOTES' | translate }}</label><input pInputText [(ngModel)]="createForm.notes" /></div>
+  </div>
+  <p *ngIf="selectedOrder()">{{ 'UX.RETURN_QUANTITY' | translate }}</p><h3 style="margin:1rem 0 .5rem;">{{ 'UI.RETURN_LINES' | translate }}</h3>
+  <div *ngFor="let line of createForm.lines; let i = index" style="border:1px solid var(--surface-border);padding:.75rem;margin-bottom:.75rem;border-radius:6px;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:.6rem;">
+      <p-dropdown appendTo="body" [options]="catalogItems()" [(ngModel)]="line.itemId" optionLabel="name" optionValue="id" [filter]="true" filterBy="sku,name" [loading]="catalogLoading()" [placeholder]="'UI.SELECT_CATALOG_ITEM_REQUIRED' | translate" (onChange)="onItemSelected(line, $event.value)"><ng-template pTemplate="item" let-item><strong>{{ item.sku }}</strong> — {{ item.name }}</ng-template></p-dropdown>
+      <input pInputText [(ngModel)]="line.sku" [placeholder]="'UI.SKU' | translate" [readonly]="true" /><input pInputText [(ngModel)]="line.itemName" [placeholder]="'UI.ITEM_NAME' | translate" [readonly]="true" />
+      <p-inputNumber [(ngModel)]="line.quantity" [min]="1" [placeholder]="'UI.QUANTITY_REQUIRED' | translate"></p-inputNumber><input pInputText [(ngModel)]="line.uomCode" [placeholder]="'UI.UOM_CODE' | translate" [readonly]="true" /><input pInputText [(ngModel)]="line.uomName" [placeholder]="'UI.UOM_NAME' | translate" [readonly]="true" /><input pInputText [(ngModel)]="line.reasonCode" [placeholder]="'UI.REASON_CODE_REQUIRED' | translate" /><input pInputText [(ngModel)]="line.notes" [placeholder]="'UI.LINE_NOTES' | translate" />
     </div>
+    <button *ngIf="createForm.lines.length > 1" pButton icon="pi pi-trash" [label]="'UI.REMOVE_LINE' | translate" class="p-button-text p-button-danger p-button-sm" (click)="removeLine(i)"></button>
+  </div>
+  <button pButton icon="pi pi-plus" [label]="'UI.ADD_LINE' | translate" class="p-button-text p-button-sm" (click)="addLine()"></button>
+  <ng-template pTemplate="footer"><button pButton [label]="'UI.CANCEL' | translate" class="p-button-text" (click)="showCreateDialog=false"></button><button pButton [label]="'UI.CREATE' | translate" [loading]="saving()" [disabled]="!canCreate()" (click)="createReturn()"></button></ng-template>
+</p-dialog>
+
+<p-dialog [(visible)]="showDetailsDialog" [modal]="true" [style]="{width:'860px',maxWidth:'95vw'}" [header]="'UI.RETURN_AUTHORIZATION' | translate">
+  <ng-container *ngIf="selectedReturn() as ret">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;"><div><strong>{{ 'UI.RMA' | translate }}</strong> <code>{{ ret.id }}</code></div><p-tag [value]="statusLabel(ret.status) | uiLabel" [severity]="severity(ret.status)"></p-tag></div>
+    <p *ngIf="!canMutate(ret) && !saving()">{{ 'UX.RETURN_TERMINAL' | translate }}</p><p *ngIf="ret.notes" style="color:var(--text-secondary)">{{ ret.notes }}</p><p *ngIf="ret.rejectionReason" style="color:var(--red-500)"><strong>{{ 'UI.REJECTION' | translate }}</strong> {{ ret.rejectionReason }}</p>
+    <div style="display:flex;flex-wrap:wrap;gap:.5rem;margin:1rem 0;"><button pButton [label]="'UI.AUTHORIZE' | translate" class="p-button-sm" [loading]="saving()" [disabled]="!canMutate(ret)" (click)="authorize(ret)"></button><button pButton [label]="'UI.AWAIT_RECEIPT' | translate" class="p-button-sm p-button-outlined" [loading]="saving()" [disabled]="!canMutate(ret)" (click)="awaitingReceipt(ret)"></button><button pButton [label]="'UI.RECEIVE_ALL' | translate" class="p-button-sm p-button-outlined" [loading]="saving()" [disabled]="!canMutate(ret)" (click)="receive(ret)"></button><button pButton [label]="'UI.REJECT' | translate" class="p-button-sm p-button-danger p-button-outlined" [disabled]="!canMutate(ret)" (click)="openReject()"></button><button pButton [label]="'UI.CLOSE' | translate" class="p-button-sm p-button-success" [loading]="saving()" [disabled]="!canMutate(ret)" (click)="close(ret)"></button></div>
+    <p-table [value]="ret.lines" styleClass="p-datatable-sm"><ng-template pTemplate="header"><tr><th>{{ 'UI.SKU' | translate }}</th><th>{{ 'UI.ITEM' | translate }}</th><th>{{ 'UI.EXPECTED' | translate }}</th><th>{{ 'UI.RECEIVED' | translate }}</th><th>{{ 'UI.CONDITION' | translate }}</th><th>{{ 'UI.DISPOSITION' | translate }}</th></tr></ng-template><ng-template pTemplate="body" let-line><tr><td>{{ line.sku }}</td><td>{{ line.itemName }}</td><td>{{ line.quantity }} {{ line.uomCode }}</td><td>{{ line.receivedQuantity }}</td><td>{{ line.condition ?? '—' }} <button pButton [label]="'UI.GOOD' | translate" class="p-button-text p-button-sm" [disabled]="!canMutate(ret)" (click)="inspect(ret,line.id,'Good')"></button></td><td>{{ line.dispositionType ?? '—' }} <button pButton [label]="'UI.RESTOCK' | translate" class="p-button-text p-button-sm" [disabled]="!canMutate(ret)" (click)="disposition(ret,line)"></button></td></tr></ng-template></p-table>
+  </ng-container>
+</p-dialog>
+<p-dialog [(visible)]="showRejectDialog" [modal]="true" [style]="{width:'440px',maxWidth:'95vw'}" [header]="'UI.REJECT_RETURN' | translate"><div class="form-field"><label>{{ 'UI.REASON_REQUIRED' | translate }}</label><textarea pInputTextarea [(ngModel)]="rejectionReason" rows="3" style="width:100%"></textarea></div><ng-template pTemplate="footer"><button pButton [label]="'UI.CANCEL' | translate" class="p-button-text" (click)="showRejectDialog=false"></button><button pButton [label]="'UI.REJECT_RETURN' | translate" class="p-button-danger" [loading]="saving()" (click)="reject()"></button></ng-template></p-dialog>

@@ -3,9 +3,10 @@ import { inject } from '@angular/core';
 import { catchError, switchMap, throwError } from 'rxjs';
 import { AuthService } from '../auth/auth.service';
 import { SKIP_AUTH } from './auth-http-context';
+import { environment } from '../../../environments/environment';
 
 export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
-  if (req.context.get(SKIP_AUTH)) {
+  if (req.context.get(SKIP_AUTH) || !req.url.startsWith(environment.apiUrl + '/')) {
     return next(req);
   }
 
@@ -21,11 +22,11 @@ export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
   // response for an already-expired access token.
   if (authService.isAccessTokenExpired()) {
     return authService.refreshAccessToken().pipe(
-      switchMap(() => next(withAuthorization(req, authService.getToken()))),
       catchError(error => {
         authService.clearSession();
         return throwError(() => error);
       }),
+      switchMap(() => next(withAuthorization(req, authService.getToken()))),
     );
   }
 

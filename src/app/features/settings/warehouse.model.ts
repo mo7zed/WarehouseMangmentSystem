@@ -11,7 +11,7 @@ export interface Warehouse {
     coordinates: {
       latitude: number;
       longitude: number;
-    };
+    } | null;
   };
   dimensions: {
     totalAreaM2: number;

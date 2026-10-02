@@ -20,39 +20,36 @@ export class WorkAssignmentService {
     return this.api.post<WorkAssignment>(this.endpoint, body);
   }
 
-  assign(id: string, body: Record<string, unknown> = {}): Observable<WorkAssignment> {
-    return this.action(id, 'assign', body);
+  assign(id: string, body: { operatorId: string }): Observable<unknown> {
+    return this.api.post<unknown>(`${this.endpoint}/${id}/assign`, body);
   }
 
-  accept(id: string): Observable<WorkAssignment> {
-    return this.action(id, 'accept');
+  accept(id: string): Observable<unknown> {
+    return this.api.post<unknown>(`${this.endpoint}/${id}/accept`, null);
   }
 
-  start(id: string): Observable<WorkAssignment> {
-    return this.action(id, 'start');
+  start(id: string): Observable<unknown> {
+    return this.api.post<unknown>(`${this.endpoint}/${id}/start`, null);
   }
 
-  complete(id: string): Observable<WorkAssignment> {
-    return this.action(id, 'complete');
+  complete(id: string): Observable<unknown> {
+    return this.api.post<unknown>(`${this.endpoint}/${id}/complete`, null);
   }
 
-  fail(id: string, body: Record<string, unknown> = {}): Observable<WorkAssignment> {
-    return this.action(id, 'fail', body);
+  fail(id: string, body: { reason: string }): Observable<unknown> {
+    return this.api.post<unknown>(`${this.endpoint}/${id}/fail`, body);
   }
 
-  cancel(id: string, body: Record<string, unknown> = {}): Observable<WorkAssignment> {
-    return this.action(id, 'cancel', body);
+  cancel(id: string): Observable<unknown> {
+    return this.api.post<unknown>(`${this.endpoint}/${id}/cancel`, null);
   }
 
-  reassign(id: string, body: Record<string, unknown> = {}): Observable<WorkAssignment> {
-    return this.action(id, 'reassign', body);
+  reassign(id: string, body: { newOperatorId: string; reason: string }): Observable<unknown> {
+    return this.api.post<unknown>(`${this.endpoint}/${id}/reassign`, body);
   }
 
-  balance(body: Record<string, unknown> = {}): Observable<WorkAssignment[]> {
-    return this.api.post<WorkAssignment[]>(`${this.endpoint}/balance`, body);
+  balance(warehouseId: string): Observable<WorkAssignment[]> {
+    return this.api.post<WorkAssignment[]>(`${this.endpoint}/balance`, null, { warehouseId });
   }
 
-  private action(id: string, action: string, body: Record<string, unknown> = {}): Observable<WorkAssignment> {
-    return this.api.post<WorkAssignment>(`${this.endpoint}/${id}/${action}`, body);
-  }
 }

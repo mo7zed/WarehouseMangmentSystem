@@ -57,40 +57,6 @@ export class WarehouseService {
     });
   }
 
-  updateWarehouse(id: string, data: Partial<CreateWarehouseDto>): Observable<Warehouse> {
-    return new Observable(observer => {
-      this.api.put<Warehouse>(`warehouses/${id}`, data).subscribe({
-        next: (response) => {
-          // Reload warehouses
-          this.getWarehouses().subscribe();
-          observer.next(response);
-          observer.complete();
-        },
-        error: (err) => {
-          this.error.set(err.message);
-          observer.error(err);
-        }
-      });
-    });
-  }
-
-  deleteWarehouse(id: string): Observable<void> {
-    return new Observable(observer => {
-      this.api.delete<void>(`warehouses/${id}`).subscribe({
-        next: () => {
-          // Reload warehouses
-          this.getWarehouses().subscribe();
-          observer.next();
-          observer.complete();
-        },
-        error: (err) => {
-          this.error.set(err.message);
-          observer.error(err);
-        }
-      });
-    });
-  }
-
   activateWarehouse(id: string): Observable<void> {
     return new Observable(observer => {
       this.api.post<void>(`warehouses/${id}/activate`, null).subscribe({

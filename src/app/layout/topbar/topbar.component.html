@@ -5,7 +5,7 @@
           pRipple
           class="topbar-btn mobile-menu-btn"
           (click)="toggleMobileMenu()"
-          aria-label="Open navigation menu"
+          [attr.aria-label]="'UI.OPEN_NAVIGATION_MENU' | translate"
           id="mobile-menu-btn"
         >
           <i class="pi pi-bars"></i>
@@ -19,6 +19,22 @@
       <!-- Right: Actions -->
       <div class="topbar-right">
 
+  <p-dropdown
+    [options]="warehouses()"
+    [ngModel]="selectedWarehouseId()"
+    (ngModelChange)="selectWarehouse($event)"
+    optionLabel="name"
+    optionValue="id"
+    [placeholder]="'UI.SELECT_WAREHOUSE' | translate"
+    [filter]="true"
+    filterBy="name,code"
+    styleClass="warehouse-switcher">
+    <ng-template pTemplate="selectedItem" let-warehouse>
+      <span *ngIf="warehouse">{{ warehouse.code }} — {{ warehouse.name }}</span>
+    </ng-template>
+    <ng-template pTemplate="item" let-warehouse>{{ warehouse.code }} — {{ warehouse.name }}</ng-template>
+  </p-dropdown>
+
   <!-- Language Toggle -->
   <button
     pRipple
@@ -27,7 +43,7 @@
     id="lang-toggle-btn"
     [title]="currentLang() === 'en' ? 'Switch to Arabic' : 'Switch to English'">
 
-    <span class="lang-flag">{{ languageFlag() }}</span>
+    <span class="lang-flag">{{ currentLang() === 'en' ? 'ع' : 'EN' }}</span>
 
     <span class="lang-label">{{ languageLabel() }}</span>
   </button>
@@ -37,9 +53,10 @@
     pRipple
     class="topbar-btn notif-btn"
     (click)="notifPanel.toggle($event)"
-    id="notifications-btn">
+    id="notifications-btn" [attr.aria-label]="'TOPBAR.NOTIFICATIONS' | translate"
+    [title]="(realtimeConnected() ? 'TOPBAR.LIVE_CONNECTED' : 'TOPBAR.LIVE_OFFLINE') | translate">
 
-    <i class="pi pi-bell"></i>
+    <i class="pi pi-bell"></i><span class="connection-indicator" [class.connected]="realtimeConnected()" aria-hidden="true"></span>
 
     <span
       class="notif-badge"
@@ -57,7 +74,7 @@
   <div class="notif-panel-header">
     <div>
       <h4>{{ 'TOPBAR.NOTIFICATIONS' | translate }}</h4>
-      <small>{{ notifications().length }} Notifications</small>
+      <small>{{ notifications().length }} {{ 'TOPBAR.NOTIFICATIONS' | translate }}</small>
     </div>
 
     <button
@@ -76,7 +93,7 @@
     *ngIf="notifications().length === 0">
 
     <i class="pi pi-bell-slash"></i>
-    <p>No notifications</p>
+    <p>{{ 'UI.NO_NOTIFICATIONS' | translate }}</p>
 
   </div>
 
@@ -189,7 +206,7 @@
 
             <div class="menu-content">
                 <span>{{ 'TOPBAR.MY_PROFILE' | translate }}</span>
-                <small>View your account</small>
+                <small>{{ 'TOPBAR.MY_PROFILE' | translate }}</small>
             </div>
 
         </button>
@@ -204,7 +221,7 @@
 
             <div class="menu-content">
                 <span>{{ 'TOPBAR.CHANGE_PASSWORD' | translate }}</span>
-                <small>Update your password</small>
+                <small>{{ 'UI.UPDATE_YOUR_PASSWORD' | translate }}</small>
             </div>
 
         </button>
@@ -221,7 +238,7 @@
 
             <div class="menu-content">
                 <span>{{ 'AUTH.LOGOUT' | translate }}</span>
-                <small>Sign out safely</small>
+                <small>{{ 'UI.SIGN_OUT_SAFELY' | translate }}</small>
             </div>
 
         </button>

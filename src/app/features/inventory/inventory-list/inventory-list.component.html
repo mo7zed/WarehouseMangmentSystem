@@ -1,462 +1,85 @@
 <app-page-shell>
-      <app-page-header
-        [title]="'INVENTORY.TITLE' | translate"
-        [subtitle]="totalRecords() + ' items across all warehouses'"
-      >
-        <div actions style="display:flex; gap:0.75rem; flex-wrap:wrap;">
-          <button
-            pButton
-            icon="pi pi-upload"
-            label="Import CSV"
-            class="p-button-outlined p-button-sm"
-            style="width:150px;"
-            id="import-csv-btn"
-          ></button>
+  <app-page-header
+    [title]="'INVENTORY.TITLE' | translate"
+    [subtitle]="'INVENTORY.RECORD_COUNT' | translate:{ count: totalRecords() }"
+  >
+    <div actions style="display:flex; gap:0.75rem;">
+      <button pButton icon="pi pi-refresh" [label]="'UI.REFRESH' | translate" class="p-button-outlined p-button-sm" (click)="loadItems()"></button>
+      <button pButton icon="pi pi-download" [label]="'INVENTORY.EXPORT' | translate" class="p-button-outlined p-button-sm" (click)="exportCsv()"></button>
+    </div>
+  </app-page-header>
 
-          <button
-            pButton
-            icon="pi pi-download"
-            [label]="'INVENTORY.EXPORT' | translate"
-            class="p-button-outlined p-button-sm"
-            style="width:150px;"
-            (click)="exportCsv()"
-            id="export-btn"
-          ></button>
+  <app-filters-bar>
+    <span class="p-input-icon-left search-field">
+      <i class="pi pi-search"></i>
+      <input pInputText [(ngModel)]="searchQuery" (input)="table.filterGlobal(searchQuery, 'contains')" [placeholder]="'INVENTORY.SEARCH' | translate" style="width:100%;" />
+    </span>
+    <p-dropdown [options]="statusOptions() | uiOptions" [(ngModel)]="selectedStatus" (onChange)="applyFilters(table)" optionLabel="label" optionValue="value" [showClear]="true" [placeholder]="'UI.ALL_STATUSES' | translate" [style]="{ minWidth: '150px' }"></p-dropdown>
+    <p-dropdown [options]="binOptions()" [(ngModel)]="selectedBin" (onChange)="applyFilters(table)" optionLabel="label" optionValue="value" [showClear]="true" [placeholder]="'UI.ALL_BINS' | translate" [filter]="true" [style]="{ minWidth: '170px' }"></p-dropdown>
+    <button pButton icon="pi pi-filter-slash" class="p-button-text p-button-sm" (click)="clearFilters(table)" [label]="'UI.CLEAR' | translate"></button>
+  </app-filters-bar>
 
-          <button
-            pButton
-            icon="pi pi-plus"
-            [label]="'INVENTORY.ADD_ITEM' | translate"
-            class="p-button-sm"
-            style="width:150px;"
-            (click)="openItemForm()"
-            id="add-item-btn"
-          ></button>
-        </div>
-      </app-page-header>
+  <p *ngIf="loadError()" role="alert" class="load-error">{{ 'INVENTORY.LOAD_ERROR' | translate }}</p>
+  <app-section-card [tableBody]="true">
+    <p-table #table [value]="items()" [loading]="loading()" [paginator]="true" [rows]="15" [totalRecords]="totalRecords()"
+      [rowsPerPageOptions]="[10, 15, 25, 50]" [globalFilterFields]="['sku', 'itemName', 'binName', 'lotNumber', 'serialNumber', 'status']"
+      [showCurrentPageReport]="true"
+      [currentPageReportTemplate]="'UI.SHOWING_FIRST_TO_LAST_OF_TOTALRECORDS_RECORDS' | translate" styleClass="p-datatable-sm" [scrollable]="true" scrollHeight="flex">
+      <ng-template pTemplate="header">
+        <tr>
+          <th pSortableColumn="sku">{{ 'UI.SKU' | translate }}<p-sortIcon field="sku"></p-sortIcon></th>
+          <th pSortableColumn="itemName">{{ 'UI.ITEM' | translate }}<p-sortIcon field="itemName"></p-sortIcon></th>
+          <th pSortableColumn="binName">{{ 'UI.BIN' | translate }}<p-sortIcon field="binName"></p-sortIcon></th>
+          <th pSortableColumn="quantity" style="text-align:right;">{{ 'UI.QUANTITY' | translate }}<p-sortIcon field="quantity"></p-sortIcon></th>
+          <th style="text-align:right;">{{ 'UI.RESERVED' | translate }}</th>
+          <th style="text-align:right;">{{ 'UI.AVAILABLE' | translate }}</th>
+          <th>{{ 'UI.STATUS' | translate }}</th>
+          <th style="text-align:center;">{{ 'COMMON.ACTIONS' | translate }}</th>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="loadingbody">
+        <tr *ngFor="let row of [1, 2, 3, 4, 5, 6]"><td *ngFor="let column of [1, 2, 3, 4, 5, 6, 7, 8]"><p-skeleton></p-skeleton></td></tr>
+      </ng-template>
+      <ng-template pTemplate="body" let-record>
+        <tr>
+          <td><code class="sku-code">{{ record.sku }}</code></td>
+          <td><div class="item-name-cell"><span class="item-name">{{ record.itemName }}</span><span class="item-barcode" *ngIf="record.serialNumber">{{ record.serialNumber }}</span></div></td>
+          <td><span class="bin-code">{{ record.binName }}</span></td>
+          <td style="text-align:right;">{{ record.quantity | number }} <small>{{ record.uomCode }}</small></td>
+          <td style="text-align:right;">{{ record.reservedQuantity | number }}</td>
+          <td style="text-align:right;">{{ record.availableQuantity | number }}</td>
+          <td><p-tag [value]="record.status | uiLabel" [severity]="getStatusSeverity(record.status)"></p-tag></td>
+          <td style="text-align:center;"><div style="display:flex; gap:0.25rem; justify-content:center;">
+            <button pButton icon="pi pi-eye" class="p-button-text p-button-sm" [pTooltip]="'UI.DETAILS' | translate" [attr.aria-label]="'UI.DETAILS' | translate" (click)="viewRecord(record)"></button>
+            <button pButton icon="pi pi-lock" class="p-button-text p-button-sm" [pTooltip]="'UI.RESERVE' | translate" [attr.aria-label]="'UI.RESERVE' | translate" (click)="openAction(record, 'reserve')"></button>
+            <button pButton icon="pi pi-lock-open" class="p-button-text p-button-sm" [pTooltip]="'UI.RELEASE' | translate" [attr.aria-label]="'UI.RELEASE' | translate" (click)="openAction(record, 'release')"></button>
+            <button pButton icon="pi pi-exclamation-triangle" class="p-button-text p-button-sm p-button-danger" [pTooltip]="'UI.QUARANTINE' | translate" [attr.aria-label]="'UI.QUARANTINE' | translate" (click)="openAction(record, 'quarantine')"></button>
+          </div></td>
+        </tr>
+      </ng-template>
+      <ng-template pTemplate="emptymessage"><tr><td colspan="8" style="text-align:center; padding:3rem; color:var(--text-muted);">{{ 'UI.NO_INVENTORY_RECORDS_FOUND' | translate }}</td></tr></ng-template>
+    </p-table>
+  </app-section-card>
 
-      <app-filters-bar>
-        <span class="p-input-icon-left search-field">
-          <i class="pi pi-search"></i>
-          <input
-            pInputText
-            [(ngModel)]="searchQuery"
-            (input)="onSearch()"
-            [placeholder]="'INVENTORY.SEARCH' | translate"
-            id="inventory-search"
-            style="width:100%;"
-          />
-        </span>
-        <p-dropdown
-          [options]="categoryOptions"
-          [(ngModel)]="selectedCategory"
-          [showClear]="true"
-          (onChange)="loadItems()"
-          optionLabel="label"
-          optionValue="value"
-          placeholder="All Categories"
-          [style]="{ minWidth: '160px' }"
-        ></p-dropdown>
-        <p-dropdown
-          [options]="statusOptions"
-          [(ngModel)]="selectedStatus"
-          [showClear]="true"
-          (onChange)="loadItems()"
-          optionLabel="label"
-          optionValue="value"
-          placeholder="All Statuses"
-          [style]="{ minWidth: '150px' }"
-        ></p-dropdown>
-        <p-dropdown
-          [options]="strategyOptions"
-          [(ngModel)]="selectedStrategy"
-          [showClear]="true"
-          optionLabel="label"
-          optionValue="value"
-          placeholder="Strategy"
-          [style]="{ minWidth: '130px' }"
-        ></p-dropdown>
-        <button
-          pButton
-          icon="pi pi-filter-slash"
-          class="p-button-text p-button-sm"
-          (click)="clearFilters()"
-          label="Clear"
-          id="clear-filters-btn"
-        ></button>
-      </app-filters-bar>
+  <p-dialog [(visible)]="showRecordDialog" [modal]="true" [style]="{ width: '550px', maxWidth: '95vw' }" [header]="'UI.INVENTORY_RECORD_DETAILS' | translate">
+    <div *ngIf="selectedRecord" style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; padding:0.5rem 0;">
+      <div><strong>{{ 'UI.ITEM' | translate }}</strong><br>{{ selectedRecord.itemName }}</div><div><strong>{{ 'UI.SKU' | translate }}</strong><br>{{ selectedRecord.sku }}</div>
+      <div><strong>{{ 'UI.BIN' | translate }}</strong><br>{{ selectedRecord.binName }}</div><div><strong>{{ 'UI.STATUS' | translate }}</strong><br>{{ selectedRecord.status | uiLabel }}</div>
+      <div><strong>{{ 'UI.LOT_NUMBER' | translate }}</strong><br>{{ selectedRecord.lotNumber || '—' }}</div><div><strong>{{ 'UI.SERIAL_NUMBER' | translate }}</strong><br>{{ selectedRecord.serialNumber || '—' }}</div>
+      <div><strong>{{ 'UI.EXPIRATION' | translate }}</strong><br>{{ selectedRecord.expirationDate ? (selectedRecord.expirationDate | date:'mediumDate') : '—' }}</div>
+      <div><strong>{{ 'UI.RECEIVED' | translate }}</strong><br>{{ selectedRecord.receivedDate | date:'medium' }}</div><div><strong>{{ 'UI.LAST_MOVEMENT' | translate }}</strong><br>{{ selectedRecord.lastMovementAt ? (selectedRecord.lastMovementAt | date:'medium') : '—' }}</div>
+    </div>
+  </p-dialog>
 
-      <app-section-card [tableBody]="true">
-        <p-table
-          [value]="items()"
-          [loading]="loading()"
-          [paginator]="true"
-          [rows]="15"
-          [totalRecords]="totalRecords()"
-          [lazy]="true"
-          (onLazyLoad)="onLazyLoad($event)"
-          [rowsPerPageOptions]="[10, 15, 25, 50]"
-          [showCurrentPageReport]="true"
-          currentPageReportTemplate="Showing {first} to {last} of {totalRecords} items"
-          [sortMode]="'single'"
-          styleClass="p-datatable-sm"
-          id="inventory-table"
-          [scrollable]="true"
-          scrollHeight="calc(100vh - 420px)"
-        >
-          <ng-template pTemplate="header">
-            <tr>
-              <th pSortableColumn="sku" style="min-width:110px;">
-                {{ 'INVENTORY.SKU' | translate }}
-                <p-sortIcon field="sku"></p-sortIcon>
-              </th>
-              <th pSortableColumn="name" style="min-width:180px;">
-                {{ 'INVENTORY.ITEM_NAME' | translate }}
-                <p-sortIcon field="name"></p-sortIcon>
-              </th>
-              <th style="min-width:120px;">
-                {{ 'INVENTORY.CATEGORY' | translate }}
-              </th>
-              <th style="min-width:140px;">
-                {{ 'INVENTORY.ZONE' | translate }} /
-                {{ 'INVENTORY.BIN' | translate }}
-              </th>
-              <th
-                pSortableColumn="quantity"
-                style="min-width:100px; text-align:right;"
-              >
-                {{ 'INVENTORY.QUANTITY' | translate }}
-                <p-sortIcon field="quantity"></p-sortIcon>
-              </th>
-              <th style="min-width:90px; text-align:center;">
-                {{ 'INVENTORY.UOM' | translate }}
-              </th>
-              <th style="min-width:100px; text-align:center;">
-                {{ 'INVENTORY.STRATEGY' | translate }}
-              </th>
-              <th style="min-width:110px; text-align:center;">
-                {{ 'INVENTORY.STATUS' | translate }}
-              </th>
-              <th style="min-width:120px;">
-                {{ 'INVENTORY.LAST_UPDATED' | translate }}
-              </th>
-              <th style="min-width:120px; text-align:center;">
-                {{ 'COMMON.ACTIONS' | translate }}
-              </th>
-            </tr>
-          </ng-template>
-
-          <ng-template pTemplate="loadingbody">
-            <tr *ngFor="let i of [1, 2, 3, 4, 5, 6, 7, 8]">
-              <td *ngFor="let j of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]">
-                <p-skeleton></p-skeleton>
-              </td>
-            </tr>
-          </ng-template>
-
-          <ng-template pTemplate="body" let-item>
-            <tr>
-              <td>
-                <code class="sku-code">{{ item.sku }}</code>
-              </td>
-              <td>
-                <div class="item-name-cell">
-                  <span class="item-name">{{ item.name }}</span>
-                  <span class="item-barcode" *ngIf="item.barcode">{{
-                    item.barcode
-                  }}</span>
-                </div>
-              </td>
-              <td>
-                <span class="category-tag">{{ item.category }}</span>
-              </td>
-              <td>
-                <div class="bin-cell">
-                  <span class="zone-label">{{ item.zoneName }}</span>
-                  <span class="bin-code">{{ item.binCode }}</span>
-                </div>
-              </td>
-              <td style="text-align:right;">
-                <div class="qty-cell">
-                  <span
-                    class="qty-value"
-                    [class.low]="item.status === 'low_stock'"
-                    [class.out]="item.status === 'out_of_stock'"
-                  >
-                    {{ item.quantity | number }}
-                  </span>
-                  <span class="qty-reserved" *ngIf="item.reservedQty > 0"
-                    >{{ item.reservedQty }} rsv</span
-                  >
-                </div>
-              </td>
-              <td style="text-align:center;">{{ item.uom }}</td>
-              <td style="text-align:center;">
-                <span
-                  class="strategy-badge"
-                  [class]="item.strategy.toLowerCase()"
-                  >{{ item.strategy }}</span
-                >
-              </td>
-              <td style="text-align:center;">
-                <p-tag
-                  [value]="item.status | titlecase"
-                  [severity]="getStatusSeverity(item.status)"
-                ></p-tag>
-              </td>
-              <td>
-                <span class="date-text">{{
-                  item.lastUpdated | date: 'MMM d, HH:mm'
-                }}</span>
-              </td>
-              <td style="text-align:center;">
-                <div style="display:flex; gap:0.35rem; justify-content:center;">
-                  <button
-                    pButton
-                    icon="pi pi-eye"
-                    class="p-button-text p-button-sm"
-                    pTooltip="View"
-                    tooltipPosition="top"
-                    (click)="viewItem(item)"
-                    [id]="'view-item-' + item.id"
-                  ></button>
-                  <button
-                    pButton
-                    icon="pi pi-pencil"
-                    class="p-button-text p-button-sm"
-                    pTooltip="Edit"
-                    tooltipPosition="top"
-                    (click)="editItem(item)"
-                    [id]="'edit-item-' + item.id"
-                  ></button>
-                  <button
-                    pButton
-                    icon="pi pi-arrow-right-arrow-left"
-                    class="p-button-text p-button-sm"
-                    pTooltip="Transfer"
-                    tooltipPosition="top"
-                    (click)="openTransfer(item)"
-                    [id]="'transfer-item-' + item.id"
-                  ></button>
-                  <button
-                    pButton
-                    icon="pi pi-trash"
-                    class="p-button-text p-button-sm p-button-danger"
-                    pTooltip="Delete"
-                    tooltipPosition="top"
-                    (click)="confirmDelete(item)"
-                    [id]="'delete-item-' + item.id"
-                  ></button>
-                </div>
-              </td>
-            </tr>
-          </ng-template>
-
-          <ng-template pTemplate="emptymessage">
-            <tr>
-              <td
-                colspan="10"
-                style="text-align:center; padding:3rem; color:var(--text-muted);"
-              >
-                <i
-                  class="pi pi-box"
-                  style="font-size:2rem; display:block; margin-bottom:0.5rem;"
-                ></i>
-                {{ 'INVENTORY.NO_ITEMS' | translate }}
-              </td>
-            </tr>
-          </ng-template>
-        </p-table>
-      </app-section-card>
-
-      <!-- Add/Edit Item Dialog -->
-      <p-dialog
-        [(visible)]="showItemForm"
-        [modal]="true"
-        [style]="{ width: '650px', maxWidth: '95vw' }"
-        [header]="
-          editingItem
-            ? ('INVENTORY.EDIT_ITEM' | translate)
-            : ('INVENTORY.ADD_ITEM' | translate)
-        "
-        id="item-form-dialog"
-      >
-        <div
-          *ngIf="showItemForm"
-          style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; padding:0.5rem 0;"
-        >
-          <div class="form-field">
-            <label>SKU *</label>
-            <input
-              pInputText
-              [(ngModel)]="formData.sku"
-              placeholder="SKU-0000"
-            />
-          </div>
-          <div class="form-field">
-            <label>Item Name *</label>
-            <input
-              pInputText
-              [(ngModel)]="formData.name"
-              placeholder="Item name"
-            />
-          </div>
-          <div class="form-field">
-            <label>Category</label>
-            <p-dropdown
-              [options]="categoryOptions"
-              [(ngModel)]="formData.category"
-              optionLabel="label"
-              optionValue="value"
-              placeholder="Select category"
-              styleClass="w-full"
-            ></p-dropdown>
-          </div>
-          <div class="form-field">
-            <label>UOM</label>
-            <p-dropdown
-              [options]="uomOptions"
-              [(ngModel)]="formData.uom"
-              optionLabel="label"
-              optionValue="value"
-              placeholder="Select UOM"
-              styleClass="w-full"
-            ></p-dropdown>
-          </div>
-          <div class="form-field">
-            <label>Strategy</label>
-            <p-dropdown
-              [options]="strategyOptions"
-              [(ngModel)]="formData.strategy"
-              optionLabel="label"
-              optionValue="value"
-              placeholder="FIFO / FEFO / LIFO"
-              styleClass="w-full"
-            ></p-dropdown>
-          </div>
-          <div class="form-field">
-            <label>Barcode</label>
-            <input
-              pInputText
-              [(ngModel)]="formData.barcode"
-              placeholder="Barcode"
-            />
-          </div>
-          <div class="form-field">
-            <label>Cost Price (SAR)</label>
-            <input
-              pInputText
-              type="number"
-              [(ngModel)]="formData.costPrice"
-              placeholder="0.00"
-            />
-          </div>
-          <div class="form-field">
-            <label>Selling Price (SAR)</label>
-            <input
-              pInputText
-              type="number"
-              [(ngModel)]="formData.sellingPrice"
-              placeholder="0.00"
-            />
-          </div>
-          <div class="form-field">
-            <label>Min Threshold</label>
-            <input
-              pInputText
-              type="number"
-              [(ngModel)]="formData.minThreshold"
-              placeholder="20"
-            />
-          </div>
-          <div class="form-field">
-            <label>Reorder Point</label>
-            <input
-              pInputText
-              type="number"
-              [(ngModel)]="formData.reorderPoint"
-              placeholder="50"
-            />
-          </div>
-        </div>
-        <ng-template pTemplate="footer">
-          <button
-            pButton
-            label="{{ 'COMMON.CANCEL' | translate }}"
-            class="p-button-text"
-            (click)="showItemForm = false"
-            id="item-form-cancel"
-          ></button>
-          <button
-            pButton
-            label="{{ 'COMMON.SAVE' | translate }}"
-            (click)="saveItem()"
-            [loading]="saving()"
-            id="item-form-save"
-          ></button>
-        </ng-template>
-      </p-dialog>
-
-      <!-- Transfer Dialog -->
-      <p-dialog
-        [(visible)]="showTransferForm"
-        [modal]="true"
-        [style]="{ width: '500px', maxWidth: '95vw' }"
-        header="{{ 'INVENTORY.TRANSFER_STOCK' | translate }}"
-        id="transfer-dialog"
-      >
-        <div
-          *ngIf="showTransferForm"
-          style="display:flex; flex-direction:column; gap:1rem; padding:0.5rem 0;"
-        >
-          <div class="form-field">
-            <label>{{ 'INVENTORY.SOURCE_BIN' | translate }}</label>
-            <input pInputText [value]="transferItem?.binCode" readonly />
-          </div>
-          <div class="form-field">
-            <label>{{ 'INVENTORY.DESTINATION_BIN' | translate }} *</label>
-            <input
-              pInputText
-              [(ngModel)]="transferData.destinationBinId"
-              placeholder="e.g. B-02-03"
-            />
-          </div>
-          <div class="form-field">
-            <label>{{ 'INVENTORY.TRANSFER_QTY' | translate }} *</label>
-            <input
-              pInputText
-              type="number"
-              [(ngModel)]="transferData.quantity"
-              [max]="transferItem?.quantity ?? 0"
-              placeholder="Quantity"
-            />
-          </div>
-          <div class="form-field">
-            <label>{{ 'INVENTORY.TRANSFER_REASON' | translate }}</label>
-            <input
-              pInputText
-              [(ngModel)]="transferData.reason"
-              placeholder="Reason for transfer"
-            />
-          </div>
-        </div>
-        <ng-template pTemplate="footer">
-          <button
-            pButton
-            label="{{ 'COMMON.CANCEL' | translate }}"
-            class="p-button-text"
-            (click)="showTransferForm = false"
-            id="transfer-cancel"
-          ></button>
-          <button
-            pButton
-            label="{{ 'INVENTORY.CONFIRM_TRANSFER' | translate }}"
-            (click)="submitTransfer()"
-            [loading]="saving()"
-            id="transfer-confirm"
-          ></button>
-        </ng-template>
-      </p-dialog>
-
-      <p-confirmDialog></p-confirmDialog>
-    </app-page-shell>
+  <p-dialog [(visible)]="showActionDialog" [modal]="true" [style]="{ width: '450px', maxWidth: '95vw' }" [header]="action | uiLabel">
+    <div *ngIf="selectedRecord" style="display:flex; flex-direction:column; gap:1rem; padding:0.5rem 0;">
+      <p>{{ selectedRecord.itemName }} ({{ selectedRecord.sku }})</p>
+      <ng-container *ngIf="action !== 'quarantine'; else quarantineReason">
+        <div class="form-field"><label>{{ 'UI.ORDER_ID_REQUIRED' | translate }}</label><input pInputText [(ngModel)]="actionData.orderId" [placeholder]="'UI.ORDER_ID' | translate" /></div>
+        <div class="form-field"><label>{{ 'UI.QUANTITY_REQUIRED' | translate }}</label><input pInputText type="number" min="1" [(ngModel)]="actionData.quantity" [max]="action === 'reserve' ? selectedRecord.availableQuantity : selectedRecord.reservedQuantity" /></div>
+      </ng-container>
+      <ng-template #quarantineReason><div class="form-field"><label>{{ 'UI.REASON_REQUIRED' | translate }}</label><input pInputText [(ngModel)]="actionData.reason" [placeholder]="'UI.REASON_FOR_QUARANTINE' | translate" /></div></ng-template>
+    </div>
+    <ng-template pTemplate="footer"><button pButton [label]="'UI.CANCEL' | translate" class="p-button-text" (click)="showActionDialog = false"></button><button pButton [label]="action | uiLabel" (click)="submitAction()" [loading]="saving()" [disabled]="!validAction()"></button></ng-template>
+  </p-dialog>
+</app-page-shell>

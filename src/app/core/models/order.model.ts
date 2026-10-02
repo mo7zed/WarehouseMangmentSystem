@@ -1,9 +1,20 @@
+export type OrderStatus =
+  | 'received' | 'validating' | 'allocated' | 'partially_allocated' | 'ready_for_picking'
+  | 'picking' | 'picked' | 'packing' | 'packed' | 'ready_for_shipping'
+  | 'shipped' | 'delivered' | 'cancelled' | 'backordered';
+export type OrderPriority = 'critical' | 'high' | 'normal' | 'low';
+export type OrderChannel = 'erp' | 'ecommerce' | 'edi' | 'manual' | 'api';
+export type OrderLineStatus = 'pending' | 'allocated' | 'partially_allocated' | 'picking' | 'picked' | 'packing' | 'packed' | 'shipped' | 'cancelled' | 'backordered';
+export type ApiOrderPriority = 'Critical' | 'High' | 'Normal' | 'Low';
+export type ApiOrderChannel = 'ERP' | 'Ecommerce' | 'EDI' | 'Manual' | 'API';
+export type AllocationStrategy = 'FIFO' | 'FEFO' | 'LIFO';
+
 export interface Order {
   id: string;
   orderNumber: string;
-  channel: 'erp' | 'ecommerce' | 'manual';
-  status: 'new' | 'allocated' | 'picking' | 'packed' | 'ready_to_ship' | 'shipped' | 'delivered';
-  priority: 'high' | 'medium' | 'low';
+  channel: OrderChannel;
+  status: OrderStatus;
+  priority: OrderPriority;
   customerId: string;
   customerName: string;
   customerAddress: string;
@@ -32,7 +43,7 @@ export interface OrderLine {
   uom: string;
   binCode?: string;
   lotNumber?: string;
-  status: 'pending' | 'allocated' | 'picked' | 'packed';
+  status: OrderLineStatus;
 }
 
 export interface PickTask {
@@ -73,6 +84,77 @@ export interface OrderFilter {
   from?: string;
   to?: string;
   search?: string;
+}
+
+/** API contract for POST /api/orders. */
+export interface CreateOrderDto {
+  warehouseId: string;
+  externalOrderId: string;
+  channel: ApiOrderChannel;
+  sourceSystem: string;
+  customerId: string;
+  customerName: string;
+  priority: ApiOrderPriority;
+  allocationStrategy: AllocationStrategy;
+  requestedShipDate: string;
+  shippingStreet: string;
+  shippingCity: string;
+  shippingRegion: string;
+  shippingPostalCode: string;
+  shippingCountry: string;
+  consolidationGroupId?: string | null;
+  notes?: string | null;
+  lines: CreateOrderLineDto[];
+}
+
+export interface CreateOrderLineDto {
+  itemId: string;
+  sku: string;
+  requestedQuantity: number;
+  uomCode: string;
+}
+
+/** API response returned by GET /api/orders. */
+export interface ApiOrder {
+  id: string;
+  externalOrderId: string;
+  channel: string;
+  sourceSystem: string;
+  customerId: string;
+  customerName: string;
+  warehouseId: string;
+  priority: string;
+  status: string;
+  allocationStrategy: string;
+  requestedShipDate: string;
+  shippingStreet: string;
+  shippingCity: string;
+  shippingRegion: string;
+  shippingPostalCode: string;
+  shippingCountry: string;
+  consolidationGroupId: string | null;
+  notes: string | null;
+  createdAt: string;
+  allocatedAt: string | null;
+  lines: ApiOrderLine[];
+}
+
+export interface ApiOrderLine {
+  id: string;
+  itemId: string;
+  sku: string;
+  requestedQuantity: number;
+  allocatedQuantity: number;
+  pickedQuantity: number;
+  packedQuantity: number;
+  shippedQuantity: number;
+  uomCode: string;
+  lineStatus: string;
+  allocations: unknown[];
+}
+
+export interface CancelOrderDto {
+  reason: string;
 }
 
 export interface ASN {

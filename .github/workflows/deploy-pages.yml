@@ -31,7 +31,7 @@ jobs:
         run: npm ci
 
       - name: Build application
-        run: npm run build -- --base-href "/${{ github.event.repository.name }}/"
+        run: npm run build:pages -- --base-href "/${{ github.event.repository.name }}/"
 
       - name: Add SPA fallback
         run: cp dist/wms/browser/index.html dist/wms/browser/404.html

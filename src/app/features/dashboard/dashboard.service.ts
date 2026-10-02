@@ -1,85 +1,93 @@
-import { Injectable } from '@angular/core';
-import { KpiCard, ChartData, Alert, ActivityLog } from '../../core/models/shared.model';
+import { Injectable, inject } from '@angular/core';
+import { Observable, map } from 'rxjs';
+import { Alert, ChartData, KpiCard, ActivityLog } from '../../core/models/shared.model';
+import { BaseApiService } from '../../core/services/base-api.service';
+
+type DashboardRange = '7d' | '30d';
+
+interface DashboardKpi { value: number; previousValue: number | null; changePercent: number | null; }
+interface DashboardSummary {
+  kpis: {
+    totalActiveSKUs: DashboardKpi;
+    openOrders: DashboardKpi & { highPriorityCount: number };
+    activePickings: DashboardKpi & { activeOperators: number };
+    pendingShipments: DashboardKpi & { dueTodayCount: number };
+    returnsToday: DashboardKpi & { needsDispositionCount: number };
+    lowStockAlerts: DashboardKpi & { criticalCount: number };
+  };
+}
+interface InboundOutboundResponse { data: Array<{ label: string; inboundQty: number; outboundQty: number }>; }
+interface FulfillmentResponse { targetPercent: number; data: Array<{ label: string; fulfillmentRatePercent: number | null }>; }
+interface InventoryByCategoryResponse { data: Array<{ categoryName: string; percentage: number }>; }
+interface AlertsResponse { data: DashboardAlert[]; unreadCount: number; }
+interface DashboardAlert { id: string; severity: string; title: string; message: string; createdAt: string; readAt: string | null; }
+interface ActivityResponse { data: DashboardActivity[]; }
+interface DashboardActivity { id: string; module: string; action: string; user: { name: string | null } | null; createdAt: string; }
 
 @Injectable({ providedIn: 'root' })
 export class DashboardService {
+  private api = inject(BaseApiService);
 
-  getKpis(): KpiCard[] {
-    return [
-      { id: 'stock_value', title: 'DASHBOARD.TOTAL_STOCK_VALUE', value: 'SAR 4.2M', subtitle: '+12.5% this month', icon: 'pi-dollar', trend: 12.5, trendLabel: 'vs last month', color: 'primary' },
-      { id: 'open_orders', title: 'DASHBOARD.OPEN_ORDERS', value: 247, subtitle: '18 high priority', icon: 'pi-shopping-cart', trend: -5.2, trendLabel: 'vs last week', color: 'info' },
-      { id: 'active_pickings', title: 'DASHBOARD.ACTIVE_PICKINGS', value: 34, subtitle: '8 operators active', icon: 'pi-map-marker', trend: 8.1, trendLabel: 'vs yesterday', color: 'success' },
-      { id: 'pending_shipments', title: 'DASHBOARD.PENDING_SHIPMENTS', value: 62, subtitle: '12 due today', icon: 'pi-send', trend: 3.4, trendLabel: 'vs yesterday', color: 'warning' },
-      { id: 'returns_today', title: 'DASHBOARD.RETURNS_TODAY', value: 11, subtitle: '3 need disposition', icon: 'pi-replay', trend: -2.1, trendLabel: 'vs yesterday', color: 'danger' },
-      { id: 'low_stock', title: 'DASHBOARD.LOW_STOCK_ALERTS', value: 19, subtitle: '5 critical', icon: 'pi-exclamation-triangle', trend: 15.0, trendLabel: 'vs last week', color: 'danger' },
-    ];
+  getKpis(warehouseId: string): Observable<KpiCard[]> {
+    return this.api.get<DashboardSummary>('v1/dashboard/summary', { warehouseId }).pipe(map(response => {
+      const { kpis } = response;
+      return [
+        this.kpi('total_active_skus', 'DASHBOARD.ACTIVE_SKUS', kpis.totalActiveSKUs, undefined, 'pi-box', 'primary'),
+        this.kpi('open_orders', 'DASHBOARD.OPEN_ORDERS', kpis.openOrders, `${kpis.openOrders.highPriorityCount} high priority`, 'pi-shopping-cart', 'info'),
+        this.kpi('active_pickings', 'DASHBOARD.ACTIVE_PICKINGS', kpis.activePickings, `${kpis.activePickings.activeOperators} operators active`, 'pi-map-marker', 'success'),
+        this.kpi('pending_shipments', 'DASHBOARD.PENDING_SHIPMENTS', kpis.pendingShipments, `${kpis.pendingShipments.dueTodayCount} due today`, 'pi-send', 'warning'),
+        this.kpi('returns_today', 'DASHBOARD.RETURNS_TODAY', kpis.returnsToday, `${kpis.returnsToday.needsDispositionCount} need disposition`, 'pi-replay', 'danger'),
+        this.kpi('low_stock', 'DASHBOARD.LOW_STOCK_ALERTS', kpis.lowStockAlerts, `${kpis.lowStockAlerts.criticalCount} critical`, 'pi-exclamation-triangle', 'danger'),
+      ];
+    }));
   }
 
-  getInboundOutboundChart(range: '7d' | '30d' = '7d'): ChartData {
-    const labels7 = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const labels30 = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
-    return {
-      labels: range === '7d' ? labels7 : labels30,
+  getInboundOutboundChart(warehouseId: string, range: DashboardRange): Observable<ChartData> {
+    return this.api.get<InboundOutboundResponse>('v1/dashboard/inbound-outbound', { warehouseId, range }).pipe(map(response => ({
+      labels: response.data.map(item => item.label),
       datasets: [
-        {
-          label: 'Inbound',
-          data: range === '7d' ? [120, 95, 145, 88, 167, 110, 134] : [520, 680, 590, 720],
-          backgroundColor: 'rgba(0, 180, 216, 0.3)',
-          borderColor: '#00B4D8',
-        },
-        {
-          label: 'Outbound',
-          data: range === '7d' ? [98, 112, 128, 95, 148, 102, 120] : [480, 610, 540, 695],
-          backgroundColor: 'rgba(30, 58, 95, 0.5)',
-          borderColor: '#2A4F7F',
-        },
+        { label: 'Inbound', data: response.data.map(item => item.inboundQty), backgroundColor: 'rgba(0, 180, 216, 0.3)', borderColor: '#00B4D8' },
+        { label: 'Outbound', data: response.data.map(item => item.outboundQty), backgroundColor: 'rgba(30, 58, 95, 0.5)', borderColor: '#2A4F7F' },
       ],
-    };
+    })));
   }
 
-  getFulfillmentChart(): ChartData {
-    return {
-      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-      datasets: [{
-        label: 'Fulfillment Rate %',
-        data: [96.2, 94.8, 97.5, 95.1, 98.2, 93.7, 96.9],
-        borderColor: '#10b981',
-        backgroundColor: 'rgba(16, 185, 129, 0.1)',
-        fill: true,
-        tension: 0.4,
-      }],
-    };
+  getFulfillmentChart(warehouseId: string, range: DashboardRange): Observable<ChartData> {
+    return this.api.get<FulfillmentResponse>('v1/dashboard/fulfillment-rate', { warehouseId, range }).pipe(map(response => ({
+      labels: response.data.map(item => item.label),
+      datasets: [{ label: `Fulfillment Rate % (Target ${response.targetPercent}%)`, data: response.data.map(item => item.fulfillmentRatePercent ?? 0), borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', fill: true, tension: 0.4 }],
+    })));
   }
 
-  getInventoryByCategory(): ChartData {
-    return {
-      labels: ['Electronics', 'FMCG', 'Apparel', 'Machinery', 'Food & Bev', 'Other'],
-      datasets: [{
-        data: [28, 22, 18, 14, 11, 7],
-        backgroundColor: [
-          '#00B4D8', '#10b981', '#f59e0b', '#3b82f6', '#8b5cf6', '#6b7280'
-        ],
-      }],
-    };
+  getInventoryByCategory(warehouseId: string): Observable<ChartData> {
+    return this.api.get<InventoryByCategoryResponse>('v1/dashboard/inventory-by-category', { warehouseId }).pipe(map(response => ({
+      labels: response.data.map(item => item.categoryName),
+      datasets: [{ data: response.data.map(item => item.percentage), backgroundColor: ['#00B4D8', '#10b981', '#f59e0b', '#3b82f6', '#8b5cf6', '#6b7280'] }],
+    })));
   }
 
-  getAlerts(): Alert[] {
-    return [
-      { id: '1', type: 'warning', title: 'Low Stock Alert', message: 'SKU-0042 (Laptop Stand Pro) is below minimum threshold (5 units left)', timestamp: new Date(), read: false },
-      { id: '2', type: 'error', title: 'Expiry Warning', message: '3 lots of SKU-0187 expire within 7 days — action required', timestamp: new Date(Date.now() - 1800000), read: false },
-      { id: '3', type: 'info', title: 'TMS Sync Complete', message: 'All shipment records synced with Aramex TMS at 13:00', timestamp: new Date(Date.now() - 3600000), read: true },
-      { id: '4', type: 'warning', title: 'Cycle Count Due', message: 'Zone B cycle count is 3 days overdue — assign to operator', timestamp: new Date(Date.now() - 7200000), read: false },
-    ];
+  getAlerts(warehouseId: string): Observable<{ alerts: Alert[]; unreadCount: number }> {
+    return this.api.get<AlertsResponse>('v1/dashboard/alerts', { warehouseId, limit: 20, offset: 0 }).pipe(map(response => ({
+      unreadCount: response.unreadCount,
+      alerts: response.data.map(alert => ({ id: alert.id, type: this.alertType(alert.severity), title: alert.title, message: alert.message, timestamp: new Date(alert.createdAt), read: !!alert.readAt })),
+    })));
   }
 
-  getRecentActivity(): ActivityLog[] {
-    return [
-      { id: '1', user: 'Mohammed Al-Otaibi', action: 'Received ASN #ASN-2024-0512', module: 'Receiving', timestamp: new Date(Date.now() - 600000) },
-      { id: '2', user: 'Fatima Al-Zahrani', action: 'Completed Pick Task #PKT-8821', module: 'Orders', timestamp: new Date(Date.now() - 1800000) },
-      { id: '3', user: 'Ahmed Al-Rashid', action: 'Created Shipment #SHP-4401', module: 'Shipping', timestamp: new Date(Date.now() - 3600000) },
-      { id: '4', user: 'Sara Al-Ghamdi', action: 'Processed Return RMA-0233', module: 'Returns', timestamp: new Date(Date.now() - 5400000) },
-      { id: '5', user: 'Khalid Al-Harbi', action: 'Stock transfer: Zone A → Zone C', module: 'Inventory', timestamp: new Date(Date.now() - 7200000) },
-      { id: '6', user: 'System', action: 'Replenishment alert triggered for 5 SKUs', module: 'Inventory', timestamp: new Date(Date.now() - 10800000) },
-    ];
+  getRecentActivity(warehouseId: string): Observable<ActivityLog[]> {
+    return this.api.get<ActivityResponse>('v1/dashboard/activity', { warehouseId, limit: 5, offset: 0 }).pipe(map(response =>
+      response.data.map(activity => ({ id: activity.id, user: activity.user?.name || 'System', action: this.formatAction(activity.action), module: activity.module, timestamp: new Date(activity.createdAt) })),
+    ));
   }
+
+  markAlertRead(alertId: string): Observable<void> { return this.api.patch<void>(`v1/dashboard/alerts/${alertId}/read`, {}); }
+
+  private kpi(id: string, title: string, source: DashboardKpi, subtitle: string | undefined, icon: string, color: KpiCard['color']): KpiCard {
+    return { id, title, value: source.value, subtitle, icon, color, trend: source.changePercent ?? undefined, trendLabel: 'vs previous period' };
+  }
+
+  private alertType(severity: string): Alert['type'] {
+    return severity === 'critical' || severity === 'error' ? 'error' : severity === 'warning' ? 'warning' : severity === 'success' ? 'success' : 'info';
+  }
+
+  private formatAction(action: string): string { return action.replace(/Command$/, '').replace(/([a-z])([A-Z])/g, '$1 $2'); }
 }

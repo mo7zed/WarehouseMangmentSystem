@@ -1,23 +1,23 @@
 /* TACHYON WMS — Design tokens (light theme default) */
 :root {
-  --brand-primary: #1e3a5f;
-  --brand-primary-light: #2a4f7f;
-  --brand-primary-dark: #152b46;
-  --brand-accent: #00b4d8;
-  --brand-accent-light: #48cae4;
-  --brand-accent-dark: #0096c7;
+  --brand-primary: #DB2532;
+  --brand-primary-light: #e54c57;
+  --brand-primary-dark: #b51d28;
+  --brand-accent: #DB2532;
+  --brand-accent-light: #f5a0a6;
+  --brand-accent-dark: #b51d28;
 
-  --surface-ground: #f1f5f9;
+  --surface-ground: #f7f7f8;
   --surface-section: #ffffff;
   --surface-card: #ffffff;
-  --surface-overlay: #f8fafc;
+  --surface-overlay: #fafafa;
   --surface-elevated: #ffffff;
-  --surface-border: #e2e8f0;
-  --surface-hover: #f1f5f9;
+  --surface-border: #e8e8ea;
+  --surface-hover: #f7f7f8;
 
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
+  --text-primary: #171717;
+  --text-secondary: #55555d;
+  --text-muted: #707078;
 
   --color-success: #059669;
   --color-success-bg: #ecfdf5;
@@ -41,14 +41,14 @@
   --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
   --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
   --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.1);
-  --shadow-glow: 0 0 0 3px rgba(0, 180, 216, 0.15);
+  --shadow-glow: 0 0 0 3px rgba(219, 37, 50, 0.15);
 
   --transition-fast: 150ms ease;
   --transition-normal: 250ms ease;
   --transition-slow: 350ms ease;
 
-  --font-sans: 'Inter', system-ui, sans-serif;
-  --font-arabic: 'Tajawal', system-ui, sans-serif;
+  --font-sans: 'Montserrat', system-ui, sans-serif;
+  --font-arabic: 'GE Flow', system-ui, sans-serif;
 
   /* Typography scale */
   --text-xs: 0.75rem;
@@ -89,7 +89,7 @@
   --space-6: 1.5rem;
 
   /* Chart.js (light backgrounds) */
-  --chart-grid: #e2e8f0;
+  --chart-grid: #e8e8ea;
   --chart-text: #64748b;
   --chart-tooltip-bg: #ffffff;
 }

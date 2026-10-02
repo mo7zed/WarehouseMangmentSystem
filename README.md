@@ -345,4 +345,13 @@ The project is configured for automatic deployment to GitHub Pages. After pushin
 the `master` branch to GitHub, open the repository **Settings → Pages** and set
 **Source** to **GitHub Actions**. The site will be available at:
 
-`https://<your-github-username>.github.io/<repository-name>/`
+https://mo7zed.github.io/WarehouseMangmentSystem/
+
+Build the static frontend locally with `npm run build:pages`. Publish only
+`dist/wms/browser`; this configuration does not build a Node.js server or
+prerender authenticated pages. Hash-based routes (for example `#/login`) allow
+direct links and refreshes on GitHub Pages.
+
+The frontend continues to use the external Railway API configured in
+`src/environments/environment.prod.ts`. The API must allow requests from
+`https://mo7zed.github.io` through its CORS configuration.

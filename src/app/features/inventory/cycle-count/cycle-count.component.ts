@@ -1,4 +1,6 @@
+import { UiLabelPipe, UiOptionsPipe } from '../../../shared/pipes/ui-label.pipe';
 import { Component, OnInit, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule } from '@ngx-translate/core';
@@ -11,29 +13,32 @@ import { AvatarModule } from 'primeng/avatar';
 import { DialogModule } from 'primeng/dialog';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { MultiSelectModule } from 'primeng/multiselect';
+import { DropdownModule } from 'primeng/dropdown';
 import { MessageService } from 'primeng/api';
 import { InventoryService } from '../inventory.service';
 import { CycleCount, CreateCycleCountDto, InventoryItem } from '../../../core/models/inventory.model';
 import { AuthService } from '../../../core/auth/auth.service';
-import { WarehouseService } from '../../settings/warehouse.service';
 import { StorageLocationService } from '../storage-location.service';
 import { StorageLocation } from '../storage-location.model';
 import { CatalogItemsService } from '../catalog-items.service';
 import { forkJoin } from 'rxjs';
+import { WarehouseContextService } from '../../../core/warehouse/warehouse-context.service';
+
+const WAREHOUSE_STORAGE_KEY = 'wms_selected_warehouse_id';
 
 @Component({
   selector: 'app-cycle-count',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, TableModule, ButtonModule, TagModule, ProgressBarModule, SkeletonModule, AvatarModule, DialogModule, InputNumberModule, MultiSelectModule],
+  imports: [UiLabelPipe, UiOptionsPipe, CommonModule, FormsModule, TranslateModule, TableModule, ButtonModule, TagModule, ProgressBarModule, SkeletonModule, AvatarModule, DialogModule, InputNumberModule, MultiSelectModule, DropdownModule],
   templateUrl: './cycle-count.component.html',
   styleUrl: './cycle-count.component.scss',})
 export class CycleCountComponent implements OnInit {
   private invService = inject(InventoryService);
   private messageService = inject(MessageService);
   private authService = inject(AuthService);
-  private warehouseService = inject(WarehouseService);
   private storageLocationService = inject(StorageLocationService);
   private catalogItemsService = inject(CatalogItemsService);
+  private warehouseContext = inject(WarehouseContextService);
   counts = signal<CycleCount[]>([]);
   loading = signal(true);
   submitting = signal(false);
@@ -41,7 +46,8 @@ export class CycleCountComponent implements OnInit {
   showCreateDialog = signal(false);
   storageLocations = signal<StorageLocation[]>([]);
   catalogItems = signal<InventoryItem[]>([]);
-  private warehouseId = '';
+  warehouseOptions = signal<{ label: string; value: string }[]>([]);
+  selectedWarehouseId = '';
 
   newCount = {
     targetLocationIds: [] as string[],
@@ -60,22 +66,27 @@ export class CycleCountComponent implements OnInit {
     ];
   }
 
-  ngOnInit(): void {
-    const userWarehouseId = this.authService.getCurrentUser()?.warehouseId;
-    if (userWarehouseId) {
-      this.warehouseId = userWarehouseId;
-      this.loadCounts();
-      return;
-    }
-
-    this.warehouseService.getWarehouses().subscribe({
-      next: warehouses => {
-        this.warehouseId = warehouses[0]?.id ?? '';
-        if (this.warehouseId) this.loadCounts();
-        else this.handleMissingWarehouse();
-      },
-      error: () => this.handleMissingWarehouse(),
+  constructor() {
+    this.warehouseContext.warehouseSelectionChanges.pipe(takeUntilDestroyed()).subscribe(warehouseId => {
+      const nextWarehouseId = warehouseId ?? '';
+      if (nextWarehouseId === this.selectedWarehouseId) return;
+      this.selectedWarehouseId = nextWarehouseId;
+      this.onWarehouseChange();
     });
+  }
+
+  ngOnInit(): void { this.warehouseContext.initialize(); }
+
+  onWarehouseChange(): void {
+    if (typeof localStorage !== 'undefined' && this.selectedWarehouseId) {
+      localStorage.setItem(WAREHOUSE_STORAGE_KEY, this.selectedWarehouseId);
+    }
+    this.counts.set([]);
+    this.newCount.targetLocationIds = [];
+    this.newCount.targetItemIds = [];
+    this.storageLocations.set([]);
+    this.catalogItems.set([]);
+    this.loadCounts();
   }
 
   getProgress(count: CycleCount): number {
@@ -84,7 +95,7 @@ export class CycleCountComponent implements OnInit {
   }
 
   startNewCount(): void {
-    if (!this.warehouseId) {
+    if (!this.selectedWarehouseId) {
       this.handleMissingWarehouse();
       return;
     }
@@ -120,7 +131,7 @@ export class CycleCountComponent implements OnInit {
     }
 
     const body: CreateCycleCountDto = {
-      warehouseId: this.warehouseId,
+      warehouseId: this.selectedWarehouseId,
       targetLocationIds,
       targetItemIds,
       varianceThreshold: this.newCount.varianceThreshold,
@@ -149,8 +160,13 @@ export class CycleCountComponent implements OnInit {
   }
 
   private loadCounts(): void {
+    if (!this.selectedWarehouseId) {
+      this.counts.set([]);
+      this.loading.set(false);
+      return;
+    }
     this.loading.set(true);
-    this.invService.getCycleCounts(this.warehouseId).subscribe({
+    this.invService.getCycleCounts(this.selectedWarehouseId).subscribe({
       next: counts => { this.counts.set(counts); this.loading.set(false); },
       error: () => this.loading.set(false),
     });
@@ -164,8 +180,8 @@ export class CycleCountComponent implements OnInit {
   private loadTargetOptions(): void {
     this.optionsLoading.set(true);
     forkJoin({
-      locations: this.storageLocationService.getStorageLocations(this.warehouseId),
-      items: this.catalogItemsService.getCatalogItems({ page: 1, limit: 1000 }),
+      locations: this.storageLocationService.getStorageLocations(this.selectedWarehouseId),
+      items: this.catalogItemsService.getCatalogItems({ page: 1 }),
     }).subscribe({
       next: ({ locations, items }) => {
         this.storageLocations.set(locations.filter(location => location.isActive));
@@ -183,4 +199,5 @@ export class CycleCountComponent implements OnInit {
     const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
     return offsetDate.toISOString().slice(0, 16);
   }
+
 }

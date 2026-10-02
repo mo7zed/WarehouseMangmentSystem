@@ -1,10 +1,9 @@
 /* TACHYON WMS — Global styles (light theme) */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Tajawal:wght@300;400;500;700;800&display=swap');
 
-@import 'primeng/resources/themes/lara-light-blue/theme.css';
+@import './styles/generated/theme.css';
 @import 'primeng/resources/primeng.css';
 @import 'primeicons/primeicons.css';
-@import 'primeflex/primeflex.css';
+@import './styles/generated/utilities.css';
 
 @import './styles/tokens';
 @import './styles/base';
@@ -34,7 +33,7 @@
     align-items:center;
     gap:1rem;
     padding:1.25rem;
-    background:linear-gradient(135deg,#2563eb,#3b82f6);
+    background:#171717;
     color:white;
 }
 
@@ -168,3 +167,44 @@
 .p-tooltip.p-tooltip-right .p-tooltip-arrow {
   border-right-color: #1e293b;
 }
+@font-face { font-family: 'Montserrat'; src: url('./assets/fonts/Montserrat.ttf') format('truetype'); font-weight: 100 900; font-display: swap; }
+@font-face { font-family: 'GE Flow'; src: url('./assets/fonts/GE-Flow-Regular.ttf') format('truetype'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'GE Flow'; src: url('./assets/fonts/GE-Flow-Bold.ttf') format('truetype'); font-weight: 600 900; font-display: swap; }
+:root { --primary-color: #DB2532; --primary-color-text: #fff; --primary-50: #fff1f2; --primary-100: #ffe0e3; --highlight-bg: #fff1f2; --highlight-text-color: #b51d28; --font-family: var(--font-sans); }
+html[dir='rtl'] { --font-family: var(--font-arabic); }
+button, input, select, textarea, .p-component { font-family: var(--font-family); }
+:focus-visible { outline: 2px solid var(--brand-primary); outline-offset: 3px; }
+html { font-size: 14px; }
+html[dir='rtl'] { font-size: 15px; }
+.p-dropdown { max-width: 100%; }
+.p-dropdown-label { min-width: 0; text-align: start; }
+html[dir='rtl'] .p-dropdown .p-dropdown-clear-icon { right: auto; left: 2.5rem; }
+html[dir='rtl'] .p-dropdown.p-dropdown-clearable .p-dropdown-label { padding-right: .75rem; padding-left: 2.5rem; }
+.p-datatable-wrapper { overflow-x: auto; max-width: 100%; }
+.p-datatable th { white-space: nowrap; text-align: start; }
+.p-datatable td { text-align: start; }
+.p-datatable { border: 1px solid var(--surface-border); border-radius: 10px; overflow: hidden; }
+.p-datatable .p-datatable-tbody > tr > td { padding-block: .85rem !important; }
+.p-button { background: var(--brand-primary); border-color: var(--brand-primary); }
+.p-button:enabled:hover { background: var(--brand-primary-dark); border-color: var(--brand-primary-dark); }
+.p-button.p-button-text, .p-button.p-button-outlined { color: var(--brand-primary); background: transparent; }
+.p-button.p-button-text:enabled:hover, .p-button.p-button-outlined:enabled:hover { background: var(--primary-50); color: var(--brand-primary-dark); }
+.page-header { flex-wrap: wrap; gap: 1rem; }
+.page-header > div, .page-header__actions { min-width: 0; flex-wrap: wrap; }
+app-page-shell, app-section-card, app-filters-bar { display: block; min-width: 0; }
+.wms-main > :not(router-outlet) { display: block; min-width: 0; max-width: 100%; }
+.p-dialog { max-width: calc(100vw - 2rem); }
+.p-dialog-content { overflow-x: hidden; }
+.p-toast { max-width: calc(100vw - 1rem); }
+.p-overlaypanel { max-width: calc(100vw - 1rem); }
+.kpi-card.primary .kpi-icon { background: var(--primary-50); }
+.sku-code, .bin-code, code { unicode-bidi: isolate; }
+@media (max-width: 768px) {
+ .page-header { align-items: flex-start !important; }
+ .page-header > div { max-width: 100%; flex-wrap: wrap; }
+ .p-dialog-content div[style*='grid-template-columns'] { grid-template-columns: minmax(0,1fr) !important; }
+ .filters-bar > p-dropdown { flex: 1 1 130px; min-width: 0; }
+ .filters-bar > p-dropdown .p-dropdown { width: 100%; min-width: 0 !important; }
+ .user-menu-panel { width: min(340px, calc(100vw - 2rem)); }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }

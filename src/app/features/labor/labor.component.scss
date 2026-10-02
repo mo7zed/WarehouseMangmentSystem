@@ -9,9 +9,21 @@
 .summary-grid span, td small { display: block; color: var(--text-color-secondary); }
 .summary-grid strong { display: block; font-size: 1.75rem; margin-top: .35rem; }
 .actions { gap: .25rem; }
+.manage-profile-button { white-space: nowrap; }
 .empty-state { padding: 2rem; text-align: center; color: var(--text-color-secondary); }
 .assignment-form { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 .assignment-form label { display: grid; gap: .45rem; font-weight: 600; }
 .assignment-form .full { grid-column: 1 / -1; }
 .assignment-form input, .assignment-form :host ::ng-deep .p-dropdown { width: 100%; }
+.operator-details { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 1rem; align-items: end; }
+.operator-details small, .operator-details span { display: block; color: var(--text-color-secondary); }
+.operator-details label { display: grid; gap: .45rem; font-weight: 600; }
+.operator-section { border-top: 1px solid var(--surface-border); margin-top: 1.25rem; padding-top: 1rem; }
+.operator-section h3 { margin: 0 0 .75rem; }
+.inline-form { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+.inline-form input { flex: 1 1 10rem; }
+.inline-form :host ::ng-deep .p-dropdown { flex: 1 1 14rem; }
+.chip-list { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .75rem; }
+.chip-list > span { color: var(--text-color-secondary); }
+.removable-chip { display: inline-flex; align-items: center; gap: .1rem; }
 @media (max-width: 720px) { .page-heading { align-items: flex-start; flex-direction: column; } .summary-grid { grid-template-columns: repeat(2, 1fr); } .assignment-form { grid-template-columns: 1fr; } .assignment-form .full { grid-column: auto; } }

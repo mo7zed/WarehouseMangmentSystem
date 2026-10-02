@@ -1,7 +1,7 @@
 export interface StorageLocationCapacity {
   maxWeightKg: number;
   maxVolumeM3: number;
-  maxItemCount: number;
+  maxItemCount: number | null;
 }
 
 export interface StorageLocationUtilization {

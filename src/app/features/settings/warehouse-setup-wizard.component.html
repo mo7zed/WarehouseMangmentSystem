@@ -18,7 +18,7 @@
           </div>
         </div>
         <p-tag
-          [value]="warehouse.operationalStatus"
+          [value]="warehouse.operationalStatus | uiLabel"
           [severity]="statusSeverity(warehouse.operationalStatus)"
           styleClass="flex-shrink-0" />
       </div>
@@ -62,7 +62,7 @@
                     <p-dropdown
                       id="zone-type"
                       formControlName="zoneType"
-                      [options]="zoneTypeOptions"
+                      [options]="zoneTypeOptions | uiOptions"
                       optionLabel="label"
                       optionValue="value"
                       [placeholder]="'SETTINGS.SELECT_ZONE_TYPE' | translate"
@@ -74,7 +74,7 @@
                     <p-dropdown
                       id="storage-type"
                       formControlName="storageType"
-                      [options]="storageTypeOptions"
+                      [options]="storageTypeOptions | uiOptions"
                       optionLabel="label"
                       optionValue="value"
                       [placeholder]="'SETTINGS.SELECT_STORAGE_TYPE' | translate"
@@ -119,7 +119,7 @@
             </form>
             @if (ctx().zoneId) {
               <div class="setup-ctx-chips">
-                <span class="setup-ctx-chip">Zone: {{ ctx().zoneId }}</span>
+                <span class="setup-ctx-chip">{{ 'SETTINGS.STEP_ZONE' | translate }}: {{ createdCodes().zone }}</span>
               </div>
             }
           }
@@ -133,8 +133,8 @@
             </form>
             @if (ctx().aisleId) {
               <div class="setup-ctx-chips">
-                <span class="setup-ctx-chip">Zone: {{ ctx().zoneId }}</span>
-                <span class="setup-ctx-chip">Aisle: {{ ctx().aisleId }}</span>
+                <span class="setup-ctx-chip">{{ 'SETTINGS.STEP_ZONE' | translate }}: {{ createdCodes().zone }}</span>
+                <span class="setup-ctx-chip">{{ 'SETTINGS.STEP_AISLE' | translate }}: {{ createdCodes().aisle }}</span>
               </div>
             }
           }
@@ -154,7 +154,7 @@
             </form>
             @if (ctx().rackId) {
               <div class="setup-ctx-chips">
-                <span class="setup-ctx-chip">Rack: {{ ctx().rackId }}</span>
+                <span class="setup-ctx-chip">{{ 'SETTINGS.STEP_RACK' | translate }}: {{ createdCodes().rack }}</span>
               </div>
             }
           }

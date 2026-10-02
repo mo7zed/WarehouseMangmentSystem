@@ -155,8 +155,7 @@ export interface AuditLogsPage {
 }
 
 export interface SystemHealth {
-  apiStatus: 'healthy' | 'degraded' | 'down';
-  uptime: string;
+  apiStatus: 'reachable' | 'unreachable';
+  latencyMs: number | null;
   lastChecked: Date;
-  services: { name: string; status: 'up' | 'down'; latencyMs: number }[];
 }

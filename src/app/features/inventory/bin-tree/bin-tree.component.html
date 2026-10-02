@@ -1,29 +1,20 @@
 <div class="bin-tree-page animate-fade-in">
       <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem;">
         <div>
-          <h1 class="page-title">Bin Management</h1>
-          <p class="page-subtitle">Storage locations with capacity utilization and status controls</p>
+          <h1 class="page-title">{{ 'UI.BIN_MANAGEMENT' | translate }}</h1>
+          <p class="page-subtitle">{{ 'UI.STORAGE_LOCATIONS_WITH_CAPACITY_UTILIZATION_AND_STATUS_CONTROLS' | translate }}</p>
         </div>
         <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;">
-          <p-dropdown
-            [options]="warehouseOptions()"
-            [(ngModel)]="selectedWarehouseId"
-            optionLabel="label"
-            optionValue="value"
-            placeholder="Select warehouse"
-            (onChange)="onWarehouseChange()"
-            styleClass="warehouse-select"
-            id="warehouse-select"
-          ></p-dropdown>
-          <button pButton icon="pi pi-refresh" class="p-button-outlined p-button-sm" (click)="loadLocations()" [loading]="loading()" label="Refresh"></button>
-          <button pButton icon="pi pi-plus" label="Add Bin" class="p-button-sm" id="add-bin-btn" (click)="openCreateDialog()" [disabled]="!selectedWarehouseId"></button>
+          <button pButton icon="pi pi-refresh" class="p-button-outlined p-button-sm" (click)="loadLocations()" [loading]="loading()" [label]="'UI.REFRESH' | translate"></button>
+          <button pButton icon="pi pi-plus" [label]="'UI.ADD_BIN' | translate" class="p-button-sm" id="add-bin-btn" (click)="openCreateDialog()" [disabled]="!selectedWarehouseId"></button>
         </div>
       </div>
 
       <div class="section-card">
+        <p *ngIf="selectedWarehouseId">{{ 'API_FIXES.CAPACITY_NOTE' | translate }}</p>
         <div *ngIf="!selectedWarehouseId" class="empty-state">
           <i class="pi pi-building"></i>
-          <p>Select a warehouse to view storage locations</p>
+          <p>{{ 'UI.SELECT_A_WAREHOUSE_TO_VIEW_STORAGE_LOCATIONS' | translate }}</p>
         </div>
 
         <div *ngIf="loading() && selectedWarehouseId" style="padding:2rem;">
@@ -40,8 +31,8 @@
         >
           <ng-template pTemplate="caption">
             <div style="display:flex;align-items:center;gap:0.75rem;padding:0.5rem;flex-wrap:wrap;">
-              <span class="legend-item"><span class="legend-dot" style="background:var(--color-success)"></span>â‰¤60% used</span>
-              <span class="legend-item"><span class="legend-dot" style="background:var(--color-warning)"></span>61â€“80%</span>
+              <span class="legend-item"><span class="legend-dot" style="background:var(--color-success)"></span>{{ 'UX.CAPACITY_LOW' | translate }}</span>
+              <span class="legend-item"><span class="legend-dot" style="background:var(--color-warning)"></span>{{ 'UX.CAPACITY_MID' | translate }}</span>
               <span class="legend-item"><span class="legend-dot" style="background:var(--color-danger)"></span>&gt;80%</span>
               <span style="margin-left:auto;font-size:0.8rem;color:var(--text-muted);">{{ locations().length }} locations</span>
             </div>
@@ -49,13 +40,13 @@
           <ng-template pTemplate="header">
             <tr>
               <th style="width:3rem"></th>
-              <th>Bin Code</th>
-              <th>Storage Type</th>
-              <th>Items</th>
-              <th>Utilization</th>
-              <th>Status</th>
-              <th>Last Activity</th>
-              <th>Actions</th>
+              <th>{{ 'UI.BIN_CODE' | translate }}</th>
+              <th>{{ 'UI.STORAGE_TYPE' | translate }}</th>
+              <th>{{ 'UI.ITEMS' | translate }}</th>
+              <th>{{ 'UI.UTILIZATION' | translate }}</th>
+              <th>{{ 'UI.STATUS' | translate }}</th>
+              <th>{{ 'UI.LAST_ACTIVITY' | translate }}</th>
+              <th>{{ 'UI.ACTIONS' | translate }}</th>
             </tr>
           </ng-template>
           <ng-template pTemplate="body" let-loc let-expanded="expanded">
@@ -73,9 +64,10 @@
                 <code style="color:var(--brand-accent);font-size:0.82rem;">{{ loc.binCode }}</code>
               </td>
               <td>{{ loc.storageType }}</td>
-              <td>{{ loc.currentUtilization.currentItemCount }} / {{ loc.capacity.maxItemCount }}</td>
+              <td>{{ loc.currentUtilization.currentItemCount }} / {{ loc.capacity.maxItemCount ?? '—' }}</td>
               <td style="min-width:180px;">
-                <div style="display:flex;align-items:center;gap:0.5rem;">
+                <span *ngIf="!loc.capacity.maxItemCount">—</span>
+                <div *ngIf="loc.capacity.maxItemCount" style="display:flex;align-items:center;gap:0.5rem;">
                   <p-progressBar
                     [value]="getUtilizationPercent(loc)"
                     [style]="{'height':'6px','flex':'1'}"
@@ -89,14 +81,14 @@
                 </div>
               </td>
               <td>
-                <p-tag [value]="loc.status" [severity]="getStatusSeverity(loc.status)"></p-tag>
+                <p-tag [value]="loc.status | uiLabel" [severity]="getStatusSeverity(loc.status)"></p-tag>
               </td>
               <td><span style="font-size:0.8rem;color:var(--text-muted);">{{ loc.lastActivityAt | date:'MMM d, yyyy HH:mm' }}</span></td>
               <td (click)="$event.stopPropagation()">
                 <div style="display:flex;gap:0.25rem;">
-                  <button pButton icon="pi pi-eye" class="p-button-text p-button-sm" pTooltip="View details" (click)="viewLocation(loc)" [id]="'view-bin-' + loc.id"></button>
-                  <button pButton icon="pi pi-ban" class="p-button-text p-button-warning p-button-sm" pTooltip="Block bin" (click)="openBlockDialog(loc)" *ngIf="canBlock(loc)" [id]="'block-bin-' + loc.id"></button>
-                  <button pButton icon="pi pi-check-circle" class="p-button-text p-button-success p-button-sm" pTooltip="Release bin" (click)="releaseLocation(loc)" *ngIf="canRelease(loc)" [loading]="busyLocationId() === loc.id" [id]="'release-bin-' + loc.id"></button>
+                  <button pButton icon="pi pi-eye" class="p-button-text p-button-sm" [pTooltip]="'UI.VIEW_DETAILS' | translate" [attr.aria-label]="'UI.VIEW_DETAILS' | translate" (click)="viewLocation(loc)" [id]="'view-bin-' + loc.id"></button>
+                  <button pButton icon="pi pi-ban" class="p-button-text p-button-warning p-button-sm" [pTooltip]="'UI.BLOCK_BIN' | translate" [attr.aria-label]="'UI.BLOCK_BIN' | translate" (click)="openBlockDialog(loc)" *ngIf="canBlock(loc)" [id]="'block-bin-' + loc.id"></button>
+                  <button pButton icon="pi pi-check-circle" class="p-button-text p-button-success p-button-sm" [pTooltip]="'UI.RELEASE_BIN' | translate" [attr.aria-label]="'UI.RELEASE_BIN' | translate" (click)="releaseLocation(loc)" *ngIf="canRelease(loc)" [loading]="busyLocationId() === loc.id" [id]="'release-bin-' + loc.id"></button>
                 </div>
               </td>
             </tr>
@@ -106,90 +98,90 @@
               <td colspan="8">
                 <div class="location-details">
                   <div class="detail-grid">
-                    <div><span>Zone ID</span><code>{{ loc.zoneId }}</code></div>
-                    <div><span>Aisle ID</span><code>{{ loc.aisleId }}</code></div>
-                    <div><span>Rack ID</span><code>{{ loc.rackId }}</code></div>
-                    <div><span>Shelf ID</span><code>{{ loc.shelfId }}</code></div>
-                    <div><span>Weight</span>{{ loc.currentUtilization.usedWeightKg | number:'1.0-2' }} / {{ loc.capacity.maxWeightKg | number:'1.0-2' }} kg</div>
-                    <div><span>Volume</span>{{ loc.currentUtilization.usedVolumeM3 | number:'1.0-3' }} / {{ loc.capacity.maxVolumeM3 | number:'1.0-3' }} mÂ³</div>
-                    <div><span>Dimensions</span>{{ loc.dimensions.lengthCm | number:'1.0-1' }} Ã— {{ loc.dimensions.widthCm | number:'1.0-1' }} Ã— {{ loc.dimensions.heightCm | number:'1.0-1' }} cm</div>
-                    <div><span>Active</span>{{ loc.isActive ? 'Yes' : 'No' }}</div>
+                    <div><span>{{ 'UI.ZONE' | translate }}</span><strong>{{ layoutLabel(loc.zoneId) }}</strong></div>
+                    <div><span>{{ 'UI.AISLE' | translate }}</span><strong>{{ layoutLabel(loc.aisleId) }}</strong></div>
+                    <div><span>{{ 'UI.RACK' | translate }}</span><strong>{{ layoutLabel(loc.rackId) }}</strong></div>
+                    <div><span>{{ 'UI.SHELF' | translate }}</span><strong>{{ layoutLabel(loc.shelfId) }}</strong></div>
+                    <div><span>{{ 'UI.WEIGHT' | translate }}</span>{{ loc.currentUtilization.usedWeightKg | number:'1.0-2' }} / {{ loc.capacity.maxWeightKg | number:'1.0-2' }} kg</div>
+                    <div><span>{{ 'UI.VOLUME' | translate }}</span>{{ loc.currentUtilization.usedVolumeM3 | number:'1.0-3' }} / {{ loc.capacity.maxVolumeM3 | number:'1.0-3' }} mÂ³</div>
+                    <div><span>{{ 'UI.DIMENSIONS' | translate }}</span>{{ loc.dimensions.lengthCm | number:'1.0-1' }} Ã— {{ loc.dimensions.widthCm | number:'1.0-1' }} Ã— {{ loc.dimensions.heightCm | number:'1.0-1' }} cm</div>
+                    <div><span>{{ 'UI.ACTIVE' | translate }}</span>{{ loc.isActive ? 'Yes' : 'No' }}</div>
                   </div>
                 </div>
               </td>
             </tr>
           </ng-template>
           <ng-template pTemplate="emptymessage">
-            <tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text-muted);">No storage locations found for this warehouse</td></tr>
+            <tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--text-muted);">{{ 'UI.NO_STORAGE_LOCATIONS_FOUND_FOR_THIS_WAREHOUSE' | translate }}</td></tr>
           </ng-template>
         </p-table>
       </div>
 
       <!-- Create Dialog -->
-      <p-dialog [(visible)]="showCreateDialog" [modal]="true" [style]="{width:'760px',maxWidth:'95vw'}" header="Create Storage Location" id="create-bin-dialog">
+      <p-dialog [(visible)]="showCreateDialog" [modal]="true" [style]="{width:'760px',maxWidth:'95vw'}" [header]="'UI.CREATE_STORAGE_LOCATION' | translate" id="create-bin-dialog">
         <div class="dialog-form" *ngIf="showCreateDialog">
           <div class="form-grid">
             <div class="form-field">
-              <label>Zone</label>
-              <p-dropdown [options]="zoneOptions()" [(ngModel)]="createForm.zoneId" optionLabel="label" optionValue="value" placeholder="Select zone" [loading]="layoutLoading()" (onChange)="onZoneChange()" styleClass="w-full" appendTo="body"></p-dropdown>
+              <label>{{ 'UI.ZONE' | translate }}</label>
+              <p-dropdown [options]="zoneOptions()" [(ngModel)]="createForm.zoneId" optionLabel="label" optionValue="value" [placeholder]="'UI.SELECT_ZONE' | translate" [loading]="layoutLoading()" (onChange)="onZoneChange()" styleClass="w-full" appendTo="body"></p-dropdown>
             </div>
             <div class="form-field">
-              <label>Aisle</label>
-              <p-dropdown [options]="aisleOptions()" [(ngModel)]="createForm.aisleId" optionLabel="label" optionValue="value" placeholder="Select aisle" [disabled]="!createForm.zoneId" (onChange)="onAisleChange()" styleClass="w-full" appendTo="body"></p-dropdown>
+              <label>{{ 'UI.AISLE' | translate }}</label>
+              <p-dropdown [options]="aisleOptions()" [(ngModel)]="createForm.aisleId" optionLabel="label" optionValue="value" [placeholder]="'UI.SELECT_AISLE' | translate" [disabled]="!createForm.zoneId" (onChange)="onAisleChange()" styleClass="w-full" appendTo="body"></p-dropdown>
             </div>
             <div class="form-field">
-              <label>Rack</label>
-              <p-dropdown [options]="rackOptions()" [(ngModel)]="createForm.rackId" optionLabel="label" optionValue="value" placeholder="Select rack" [disabled]="!createForm.aisleId" (onChange)="onRackChange()" styleClass="w-full" appendTo="body"></p-dropdown>
+              <label>{{ 'UI.RACK' | translate }}</label>
+              <p-dropdown [options]="rackOptions()" [(ngModel)]="createForm.rackId" optionLabel="label" optionValue="value" [placeholder]="'UI.SELECT_RACK' | translate" [disabled]="!createForm.aisleId" (onChange)="onRackChange()" styleClass="w-full" appendTo="body"></p-dropdown>
             </div>
             <div class="form-field">
-              <label>Shelf</label>
-              <p-dropdown [options]="shelfOptions()" [(ngModel)]="createForm.shelfId" optionLabel="label" optionValue="value" placeholder="Select shelf" [disabled]="!createForm.rackId" styleClass="w-full" appendTo="body"></p-dropdown>
+              <label>{{ 'UI.SHELF' | translate }}</label>
+              <p-dropdown [options]="shelfOptions()" [(ngModel)]="createForm.shelfId" optionLabel="label" optionValue="value" [placeholder]="'UI.SELECT_SHELF' | translate" [disabled]="!createForm.rackId" styleClass="w-full" appendTo="body"></p-dropdown>
             </div>
-            <div class="form-field"><label>Bin Label</label><input pInputText [(ngModel)]="createForm.binLabel" placeholder="e.g. BIN1" /></div>
+            <div class="form-field"><label>{{ 'UI.BIN_LABEL' | translate }}</label><input pInputText [(ngModel)]="createForm.binLabel" [placeholder]="'UI.E_G_BIN1' | translate" /></div>
             <div class="form-field">
-              <label>Storage Type</label>
-              <p-dropdown [options]="storageTypeOptions" [(ngModel)]="createForm.storageType" optionLabel="label" optionValue="value" styleClass="w-full" appendTo="body"></p-dropdown>
+              <label>{{ 'UI.STORAGE_TYPE' | translate }}</label>
+              <p-dropdown [options]="storageTypeOptions | uiOptions" [(ngModel)]="createForm.storageType" optionLabel="label" optionValue="value" styleClass="w-full" appendTo="body"></p-dropdown>
             </div>
-            <div class="form-field"><label>Max Weight (kg)</label><p-inputNumber [(ngModel)]="createForm.maxWeightKg" [min]="0" styleClass="w-full"></p-inputNumber></div>
-            <div class="form-field"><label>Max Volume (mÂ³)</label><p-inputNumber [(ngModel)]="createForm.maxVolumeM3" [min]="0" [minFractionDigits]="2" styleClass="w-full"></p-inputNumber></div>
-            <div class="form-field"><label>Max Item Count</label><p-inputNumber [(ngModel)]="createForm.maxItemCount" [min]="0" styleClass="w-full"></p-inputNumber></div>
-            <div class="form-field"><label>Length (cm)</label><p-inputNumber [(ngModel)]="createForm.lengthCm" [min]="0" styleClass="w-full"></p-inputNumber></div>
-            <div class="form-field"><label>Width (cm)</label><p-inputNumber [(ngModel)]="createForm.widthCm" [min]="0" styleClass="w-full"></p-inputNumber></div>
-            <div class="form-field"><label>Height (cm)</label><p-inputNumber [(ngModel)]="createForm.heightCm" [min]="0" styleClass="w-full"></p-inputNumber></div>
+            <div class="form-field"><label>{{ 'UI.MAX_WEIGHT_KG' | translate }}</label><p-inputNumber [(ngModel)]="createForm.maxWeightKg" [min]="0" styleClass="w-full"></p-inputNumber></div>
+            <div class="form-field"><label>{{ 'UI.MAX_VOLUME_M' | translate }}</label><p-inputNumber [(ngModel)]="createForm.maxVolumeM3" [min]="0" [minFractionDigits]="2" styleClass="w-full"></p-inputNumber></div>
+            <div class="form-field"><label>{{ 'UI.MAX_ITEM_COUNT' | translate }}</label><p-inputNumber [(ngModel)]="createForm.maxItemCount" [min]="0" styleClass="w-full"></p-inputNumber></div>
+            <div class="form-field"><label>{{ 'UI.LENGTH_CM' | translate }}</label><p-inputNumber [(ngModel)]="createForm.lengthCm" [min]="0" styleClass="w-full"></p-inputNumber></div>
+            <div class="form-field"><label>{{ 'UI.WIDTH_CM' | translate }}</label><p-inputNumber [(ngModel)]="createForm.widthCm" [min]="0" styleClass="w-full"></p-inputNumber></div>
+            <div class="form-field"><label>{{ 'UI.HEIGHT_CM' | translate }}</label><p-inputNumber [(ngModel)]="createForm.heightCm" [min]="0" styleClass="w-full"></p-inputNumber></div>
           </div>
         </div>
         <ng-template pTemplate="footer">
-          <button pButton label="Cancel" class="p-button-text" (click)="showCreateDialog = false"></button>
-          <button pButton label="Create" icon="pi pi-check" (click)="submitCreate()" [loading]="creating()" [disabled]="!canCreate()"></button>
+          <button pButton [label]="'UI.CANCEL' | translate" class="p-button-text" (click)="showCreateDialog = false"></button>
+          <button pButton [label]="'UI.CREATE' | translate" icon="pi pi-check" (click)="submitCreate()" [loading]="creating()" [disabled]="!canCreate()"></button>
         </ng-template>
       </p-dialog>
 
       <!-- Block Dialog -->
-      <p-dialog [(visible)]="showBlockDialog" [modal]="true" [style]="{width:'480px',maxWidth:'95vw'}" header="Block Storage Location" id="block-bin-dialog">
+      <p-dialog [(visible)]="showBlockDialog" [modal]="true" [style]="{width:'480px',maxWidth:'95vw'}" [header]="'UI.BLOCK_STORAGE_LOCATION' | translate" id="block-bin-dialog">
         <div class="form-field" *ngIf="blockTarget">
           <p style="margin:0 0 1rem;font-size:0.85rem;color:var(--text-secondary);">
-            Block bin <code>{{ blockTarget.binCode }}</code>
+            {{ 'UI.BLOCK_BIN' | translate }}<code>{{ blockTarget.binCode }}</code>
           </p>
-          <label>Reason</label>
-          <textarea pInputText rows="3" [(ngModel)]="blockReason" placeholder="Reason for blocking..." style="width:100%;resize:vertical;"></textarea>
+          <label>{{ 'UI.REASON' | translate }}</label>
+          <textarea pInputText rows="3" [(ngModel)]="blockReason" [placeholder]="'UI.REASON_FOR_BLOCKING' | translate" style="width:100%;resize:vertical;"></textarea>
         </div>
         <ng-template pTemplate="footer">
-          <button pButton label="Cancel" class="p-button-text" (click)="showBlockDialog = false"></button>
-          <button pButton label="Block" icon="pi pi-ban" class="p-button-warning" (click)="submitBlock()" [loading]="blocking()" [disabled]="!blockReason.trim()"></button>
+          <button pButton [label]="'UI.CANCEL' | translate" class="p-button-text" (click)="showBlockDialog = false"></button>
+          <button pButton [label]="'UI.BLOCK' | translate" icon="pi pi-ban" class="p-button-warning" (click)="submitBlock()" [loading]="blocking()" [disabled]="!blockReason.trim()"></button>
         </ng-template>
       </p-dialog>
 
       <!-- View Dialog -->
-      <p-dialog [(visible)]="showViewDialog" [modal]="true" [style]="{width:'640px',maxWidth:'95vw'}" header="Storage Location Details" id="view-bin-dialog">
+      <p-dialog [(visible)]="showViewDialog" [modal]="true" [style]="{width:'640px',maxWidth:'95vw'}" [header]="'UI.STORAGE_LOCATION_DETAILS' | translate" id="view-bin-dialog">
         <div *ngIf="viewLocationData()" class="detail-grid">
-          <div><span>Bin Code</span><strong>{{ viewLocationData()!.binCode }}</strong></div>
-          <div><span>Status</span><p-tag [value]="viewLocationData()!.status" [severity]="getStatusSeverity(viewLocationData()!.status)"></p-tag></div>
-          <div><span>Storage Type</span>{{ viewLocationData()!.storageType }}</div>
-          <div><span>Items</span>{{ viewLocationData()!.currentUtilization.currentItemCount }} / {{ viewLocationData()!.capacity.maxItemCount }}</div>
-          <div><span>Weight Used</span>{{ viewLocationData()!.currentUtilization.usedWeightKg | number:'1.0-2' }} kg</div>
-          <div><span>Volume Used</span>{{ viewLocationData()!.currentUtilization.usedVolumeM3 | number:'1.0-3' }} mÂ³</div>
-          <div><span>Dimensions</span>{{ viewLocationData()!.dimensions.lengthCm }} Ã— {{ viewLocationData()!.dimensions.widthCm }} Ã— {{ viewLocationData()!.dimensions.heightCm }} cm</div>
-          <div><span>Last Activity</span>{{ viewLocationData()!.lastActivityAt | date:'medium' }}</div>
+          <div><span>{{ 'UI.BIN_CODE' | translate }}</span><strong>{{ viewLocationData()!.binCode }}</strong></div>
+          <div><span>{{ 'UI.STATUS' | translate }}</span><p-tag [value]="viewLocationData()!.status | uiLabel" [severity]="getStatusSeverity(viewLocationData()!.status)"></p-tag></div>
+          <div><span>{{ 'UI.STORAGE_TYPE' | translate }}</span>{{ viewLocationData()!.storageType }}</div>
+          <div><span>{{ 'UI.ITEMS' | translate }}</span>{{ viewLocationData()!.currentUtilization.currentItemCount }} / {{ viewLocationData()!.capacity.maxItemCount ?? '—' }}</div>
+          <div><span>{{ 'UI.WEIGHT_USED' | translate }}</span>{{ viewLocationData()!.currentUtilization.usedWeightKg | number:'1.0-2' }} kg</div>
+          <div><span>{{ 'UI.VOLUME_USED' | translate }}</span>{{ viewLocationData()!.currentUtilization.usedVolumeM3 | number:'1.0-3' }} mÂ³</div>
+          <div><span>{{ 'UI.DIMENSIONS' | translate }}</span>{{ viewLocationData()!.dimensions.lengthCm }} Ã— {{ viewLocationData()!.dimensions.widthCm }} Ã— {{ viewLocationData()!.dimensions.heightCm }} cm</div>
+          <div><span>{{ 'UI.LAST_ACTIVITY' | translate }}</span>{{ viewLocationData()!.lastActivityAt | date:'medium' }}</div>
         </div>
         <div *ngIf="viewLoading()" style="padding:1rem;"><p-skeleton height="2rem" styleClass="mb-2" *ngFor="let i of [1,2,3,4]"></p-skeleton></div>
       </p-dialog>

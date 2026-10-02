@@ -8,6 +8,7 @@ export function applyDocumentLanguage(lang: string): void {
   if (typeof document === 'undefined') return;
   document.documentElement.lang = lang;
   document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+  document.body.dir = document.documentElement.dir;
 }
 
 export function initTranslateFactory(translate: TranslateService): () => Promise<unknown> {

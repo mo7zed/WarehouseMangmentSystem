@@ -2,9 +2,13 @@
   "name": "wms",
   "version": "0.0.0",
   "scripts": {
+    "prebuild": "node scripts/build-styles.cjs",
+    "prestart": "node scripts/build-styles.cjs",
+    "pretest": "node scripts/build-styles.cjs",
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
+    "build:pages": "node scripts/build-styles.cjs && ng build --configuration production,pages",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "serve:ssr:wms": "node dist/wms/server/server.mjs"
@@ -21,6 +25,10 @@
     "@angular/platform-server": "^18.2.0",
     "@angular/router": "^18.2.0",
     "@angular/ssr": "^18.2.21",
+    "@microsoft/signalr": "^10.0.11",
+    "@ngrx/effects": "^18.1.1",
+    "@ngrx/store": "^18.1.1",
+    "@ngrx/store-devtools": "^18.1.1",
     "@ngx-translate/core": "^15.0.0",
     "@ngx-translate/http-loader": "^8.0.0",
     "chart.js": "^4.5.1",
@@ -29,6 +37,7 @@
     "primeflex": "^3.3.1",
     "primeicons": "^7.0.0",
     "primeng": "^17.18.15",
+    "qrcode": "^1.5.4",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "zone.js": "~0.14.10"
@@ -40,12 +49,14 @@
     "@types/express": "^4.17.17",
     "@types/jasmine": "~5.1.0",
     "@types/node": "^18.18.0",
+    "@types/qrcode": "^1.5.6",
     "jasmine-core": "~5.2.0",
     "karma": "~6.4.0",
     "karma-chrome-launcher": "~3.2.0",
     "karma-coverage": "~2.2.0",
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
+    "postcss": "8.4.41",
     "typescript": "~5.5.2"
   }
 }

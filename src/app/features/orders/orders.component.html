@@ -1,148 +1,147 @@
 <app-page-shell>
-      <app-page-header [title]="'ORDERS.TITLE' | translate" [subtitle]="totalOrders() + ' orders in system'">
-        <div actions>
-          <button pButton icon="pi pi-plus" [label]="'ORDERS.CREATE_WAVE' | translate" class="p-button-sm" (click)="showWaveDialog = true"></button>
+  <app-page-header [title]="'ORDERS.TITLE' | translate" [subtitle]="totalOrders() + ' orders in selected warehouse'">
+    <div actions style="display:flex;gap:.5rem;"><button pButton icon="pi pi-plus" [label]="'UI.ADD_ORDER' | translate" class="p-button-sm" (click)="openCreateOrder()"></button><button pButton icon="pi pi-box" [label]="'UI.ADD_PACK_TASK' | translate" class="p-button-sm p-button-outlined" (click)="openCreatePackTask()"></button><button pButton icon="pi pi-list-check" [label]="'UI.CREATE_PICK_WAVE' | translate" class="p-button-sm p-button-outlined" (click)="openCreatePickWave()"></button></div>
+  </app-page-header>
+
+  <p-tabView styleClass="settings-tabs">
+  <p-tabPanel [header]="'UI.ORDERS' | translate">
+  <div class="filters-bar" style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-bottom:1rem;padding:1rem;background:var(--surface-card);border-radius:var(--radius-md);border:1px solid var(--surface-border);">
+    <span class="p-input-icon-left" style="flex:1;min-width:200px;"><i class="pi pi-search"></i><input pInputText [(ngModel)]="searchQuery" (input)="loadOrders()" [placeholder]="'COMMON.SEARCH' | translate" style="width:100%;" /></span>
+    <p-dropdown [options]="statusOptions | uiOptions" [(ngModel)]="statusFilter" (onChange)="loadOrders()" [showClear]="true" [placeholder]="'UI.STATUS' | translate" optionLabel="label" optionValue="value" [style]="{ minWidth: '150px' }"></p-dropdown>
+    <p-dropdown [options]="channelOptions | uiOptions" [(ngModel)]="channelFilter" (onChange)="loadOrders()" [showClear]="true" [placeholder]="'UI.CHANNEL' | translate" optionLabel="label" optionValue="value" [style]="{ minWidth: '150px' }"></p-dropdown>
+    <p-dropdown [options]="priorityOptions | uiOptions" [(ngModel)]="priorityFilter" (onChange)="loadOrders()" [showClear]="true" [placeholder]="'UI.PRIORITY' | translate" optionLabel="label" optionValue="value" [style]="{ minWidth: '130px' }"></p-dropdown>
+  </div>
+
+  <p-table [value]="orders()" [loading]="loading()" styleClass="p-datatable-sm" [paginator]="true" [rows]="15">
+    <ng-template pTemplate="header"><tr><th>{{ 'ORDERS.ORDER_NUMBER' | translate }}</th><th>{{ 'ORDERS.CUSTOMER' | translate }}</th><th>{{ 'ORDERS.CHANNEL' | translate }}</th><th>{{ 'ORDERS.PRIORITY' | translate }}</th><th>{{ 'ORDERS.STATUS' | translate }}</th><th>{{ 'ORDERS.CREATED' | translate }}</th><th>{{ 'ORDERS.REQUIRED_DATE' | translate }}</th><th>{{ 'COMMON.ACTIONS' | translate }}</th></tr></ng-template>
+    <ng-template pTemplate="body" let-order><tr>
+      <td><code style="color:var(--brand-accent);font-size:0.82rem;">{{ order.orderNumber }}</code></td><td><span style="font-weight:500;">{{ order.customerName }}</span></td><td><p-tag [value]="order.channel | uppercase" severity="info"></p-tag></td><td><p-tag [value]="order.priority | titlecase" [severity]="getPrioritySeverity(order.priority)"></p-tag></td><td><p-tag [value]="formatStatus(order.status) | uiLabel" [severity]="getStatusSeverity(order.status)"></p-tag></td><td><span style="font-size:0.8rem;color:var(--text-muted);">{{ order.createdAt | date:'MMM d, HH:mm' }}</span></td><td><span style="font-size:0.8rem;">{{ order.requiredDate | date:'MMM d, yyyy' }}</span></td><td><button pButton icon="pi pi-eye" class="p-button-text p-button-sm" (click)="viewOrder(order)" [pTooltip]="'UI.VIEW' | translate" [attr.aria-label]="'UI.VIEW' | translate"></button></td>
+    </tr></ng-template>
+  </p-table>
+  </p-tabPanel>
+
+  <p-tabPanel [header]="'UI.PICK_TASKS' | translate">
+    <p-table [value]="pickTasks()" [loading]="pickTasksLoading()" styleClass="p-datatable-sm" responsiveLayout="scroll">
+      <ng-template pTemplate="header"><tr><th>{{ 'UI.SEQUENCE' | translate }}</th><th>{{ 'UI.SKU' | translate }}</th><th>{{ 'UI.BIN' | translate }}</th><th>{{ 'UI.QUANTITY' | translate }}</th><th>{{ 'UI.PRIORITY' | translate }}</th><th>{{ 'UI.OPERATOR' | translate }}</th><th>{{ 'UI.STATUS' | translate }}</th><th>{{ 'UI.ACTIONS' | translate }}</th></tr></ng-template>
+      <ng-template pTemplate="body" let-task><tr>
+        <td>{{ task.pickSequence }}</td><td><strong>{{ task.sku }}</strong></td><td>{{ task.binLabel || storageLocationLabel(task.sourceLocationId) }}</td><td>{{ task.pickedQuantity ?? 0 }}/{{ task.requestedQuantity }} {{ task.uomCode }}</td><td><p-tag [value]="task.priority | uiLabel" [severity]="getPrioritySeverity(task.priority | lowercase)"></p-tag></td><td><small>{{ operatorName(task.assignedOperatorId) }}</small></td><td><p-tag [value]="task.status | uiLabel" [severity]="outboundSeverity(task.status)"></p-tag></td>
+        <td><div style="display:flex;gap:.25rem;white-space:nowrap;"><button *ngIf="task.status === 'Assigned' || task.status === 'Pending'" pButton [label]="'UI.START' | translate" class="p-button-text p-button-sm" [loading]="outboundActionLoading() === 'pick-start-' + task.id" (click)="startPickTask(task)"></button><button *ngIf="task.status === 'InProgress'" pButton [label]="'UI.CONFIRM' | translate" class="p-button-text p-button-sm" [loading]="outboundActionLoading() === 'pick-confirm-' + task.id" (click)="confirmPickTask(task)"></button><button *ngIf="!['Completed', 'Cancelled'].includes(task.status)" pButton icon="pi pi-times" class="p-button-text p-button-danger p-button-sm" [loading]="outboundActionLoading() === 'pick-cancel-' + task.id" (click)="cancelPickTask(task)"></button></div></td>
+      </tr></ng-template>
+      <ng-template pTemplate="emptymessage"><tr><td colspan="8">{{ 'UI.NO_PICK_TASKS_FOR_THE_SELECTED_WAREHOUSE' | translate }}</td></tr></ng-template>
+    </p-table>
+  </p-tabPanel>
+
+  <p-tabPanel [header]="'UI.PACK_TASKS' | translate">
+    <p-table [value]="packTasks()" [loading]="packTasksLoading()" styleClass="p-datatable-sm" responsiveLayout="scroll">
+      <ng-template pTemplate="header"><tr><th>{{ 'UI.ORDER' | translate }}</th><th>{{ 'UI.CONTAINER' | translate }}</th><th>{{ 'UI.WEIGHT' | translate }}</th><th>{{ 'UI.ITEMS' | translate }}</th><th>{{ 'UI.OPERATOR' | translate }}</th><th>{{ 'UI.STATUS' | translate }}</th><th>{{ 'UI.ACTIONS' | translate }}</th></tr></ng-template>
+      <ng-template pTemplate="body" let-task><tr>
+        <td><strong>{{ orderNumber(task.orderId) }}</strong></td><td>{{ task.containerType }}</td><td>{{ task.totalWeightKg }} kg</td><td>{{ task.items.length }} verified {{ task.items.filter ? '' : '' }}</td><td><small>{{ operatorName(task.assignedOperatorId) }}</small></td><td><p-tag [value]="task.status | uiLabel" [severity]="outboundSeverity(task.status)"></p-tag></td>
+        <td><div style="display:flex;gap:.25rem;flex-wrap:wrap;"><button *ngIf="task.status === 'Pending' || task.status === 'Assigned'" pButton [label]="'UI.START' | translate" class="p-button-text p-button-sm" [loading]="outboundActionLoading() === 'pack-start-' + task.id" (click)="startPackTask(task)"></button><button *ngFor="let item of task.items" [disabled]="item.isVerified || task.status !== 'InProgress'" pButton [label]="'Verify ' + item.sku" class="p-button-text p-button-sm" [loading]="outboundActionLoading() === 'pack-verify-' + item.id" (click)="verifyPackItem(task, item.id)"></button><button *ngIf="task.status === 'InProgress'" pButton [label]="'UI.COMPLETE' | translate" class="p-button-text p-button-sm" [loading]="outboundActionLoading() === 'pack-complete-' + task.id" (click)="completePackTask(task)"></button></div></td>
+      </tr></ng-template>
+      <ng-template pTemplate="emptymessage"><tr><td colspan="7">{{ 'UI.NO_PACK_TASKS_FOR_THE_SELECTED_WAREHOUSE' | translate }}</td></tr></ng-template>
+    </p-table>
+  </p-tabPanel>
+
+  <p-tabPanel [header]="'UI.PICK_WAVES' | translate">
+    <p-table [value]="pickWaves()" [loading]="pickWavesLoading()" styleClass="p-datatable-sm" responsiveLayout="scroll">
+      <ng-template pTemplate="header"><tr><th>{{ 'UI.WAVE' | translate }}</th><th>{{ 'UI.TYPE' | translate }}</th><th>{{ 'UI.ORDERS' | translate }}</th><th>{{ 'UI.PROGRESS' | translate }}</th><th>{{ 'UI.STATUS' | translate }}</th><th>{{ 'UI.CREATED' | translate }}</th><th>{{ 'UI.ACTIONS' | translate }}</th></tr></ng-template>
+      <ng-template pTemplate="body" let-wave><tr><td><strong>{{ pickWaveLabel(wave) }}</strong></td><td>{{ wave.waveType }}</td><td>{{ wave.orderIds.length }}</td><td>{{ wave.completedTasks }}/{{ wave.totalTasks }} tasks</td><td><p-tag [value]="wave.status | uiLabel" [severity]="outboundSeverity(wave.status)"></p-tag></td><td>{{ wave.createdAt | date:'medium' }}</td><td><button *ngIf="wave.status === 'Created' || wave.status === 'Draft'" pButton [label]="'UI.RELEASE' | translate" class="p-button-text p-button-sm" [loading]="outboundActionLoading() === 'wave-release-' + wave.id" (click)="releasePickWave(wave)"></button><button *ngIf="!['Completed', 'Cancelled'].includes(wave.status)" pButton icon="pi pi-times" class="p-button-text p-button-danger p-button-sm" [loading]="outboundActionLoading() === 'wave-cancel-' + wave.id" (click)="cancelPickWave(wave)"></button></td></tr></ng-template>
+      <ng-template pTemplate="emptymessage"><tr><td colspan="7">{{ 'UI.NO_PICK_WAVES_FOR_THE_SELECTED_WAREHOUSE' | translate }}</td></tr></ng-template>
+    </p-table>
+  </p-tabPanel>
+  </p-tabView>
+
+  <p-dialog [(visible)]="showOrderDetail" [modal]="true" [style]="{width:'650px',maxWidth:'95vw'}" [header]="selectedOrder?.orderNumber ?? ''">
+    <div *ngIf="selectedOrder" style="display:flex;flex-direction:column;gap:0.75rem;">
+      <div class="confirm-row"><span>{{ 'UI.CUSTOMER' | translate }}</span><strong>{{ selectedOrder.customerName }}</strong></div>
+      <div class="confirm-row"><span>{{ 'UI.STATUS' | translate }}</span><p-tag [value]="formatStatus(selectedOrder.status) | uiLabel" [severity]="getStatusSeverity(selectedOrder.status)"></p-tag></div>
+      <div class="confirm-row"><span>{{ 'UI.CHANNEL' | translate }}</span><strong>{{ selectedOrder.channel | uppercase }}</strong></div>
+      <div class="confirm-row"><span>{{ 'UI.TOTAL_ITEMS' | translate }}</span><strong>{{ selectedOrder.totalItems }}</strong></div>
+      <div class="form-field">
+        <label for="order-shipment">{{ 'API_FIXES.ORDER_SHIPMENT' | translate }}</label>
+        <p-dropdown inputId="order-shipment" [options]="shipmentOptions()" [(ngModel)]="shipmentId" optionLabel="label" optionValue="value" [loading]="shipmentLoading()" [showClear]="true" [placeholder]="'API_FIXES.SELECT_SHIPMENT' | translate" appendTo="body" styleClass="w-full"></p-dropdown>
+        <small>{{ 'API_FIXES.SHIPMENT_NOTE' | translate }}</small>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <button pButton class="p-button-text p-button-sm" [label]="'API_FIXES.PREVIOUS' | translate" [disabled]="shipmentPage <= 1 || shipmentLoading()" (click)="loadOrderShipments(shipmentPage - 1)"></button>
+          <span>{{ shipmentPage }}</span>
+          <button pButton class="p-button-text p-button-sm" [label]="'API_FIXES.NEXT' | translate" [disabled]="!shipmentHasNext || shipmentLoading()" (click)="loadOrderShipments(shipmentPage + 1)"></button>
         </div>
-      </app-page-header>
+      </div>
+      <h4 style="margin-top:0.5rem;">{{ 'UI.ORDER_LINES' | translate }}</h4>
+      <p-table [value]="selectedOrder.lines" styleClass="p-datatable-sm"><ng-template pTemplate="header"><tr><th>{{ 'UI.SKU' | translate }}</th><th>{{ 'UI.QTY' | translate }}</th><th>{{ 'UI.PICKED' | translate }}</th><th>{{ 'UI.STATUS' | translate }}</th></tr></ng-template><ng-template pTemplate="body" let-line><tr><td>{{ line.sku }}</td><td>{{ line.quantity }} {{ line.uom }}</td><td>{{ line.pickedQty }}</td><td><p-tag [value]="line.status | titlecase" severity="info"></p-tag></td></tr></ng-template></p-table>
+      <p class="text-secondary">{{ 'UX.STATE_ACTIONS' | translate }}</p><div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+        <button pButton [label]="'UI.ALLOCATE' | translate" class="p-button-sm" [loading]="actionLoading() === 'allocate'" [disabled]="!canAction(selectedOrder, 'allocate')" (click)="runAction(selectedOrder, 'allocate')"></button>
+        <button pButton [label]="'UI.READY_FOR_PICKING' | translate" class="p-button-sm p-button-outlined" [loading]="actionLoading() === 'readyForPicking'" [disabled]="!canAction(selectedOrder, 'readyForPicking')" (click)="runAction(selectedOrder, 'readyForPicking')"></button>
+        <button pButton [label]="'UI.SHIP' | translate" class="p-button-sm p-button-success" [loading]="actionLoading() === 'markShipped'" [disabled]="!shipmentId || shipmentLoading() || !canAction(selectedOrder, 'markShipped')" (click)="runAction(selectedOrder, 'markShipped')"></button>
+        <button pButton [label]="'UI.DELIVERED' | translate" class="p-button-sm p-button-success" [loading]="actionLoading() === 'markDelivered'" [disabled]="!canAction(selectedOrder, 'markDelivered')" (click)="runAction(selectedOrder, 'markDelivered')"></button>
+      </div>
+    </div>
+  </p-dialog>
 
-      <p-tabView styleClass="settings-tabs">
-        <!-- Orders List -->
-        <p-tabPanel [header]="'ORDERS.ORDERS_LIST' | translate">
-          <div class="filters-bar" style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-bottom:1rem;padding:1rem;background:var(--surface-card);border-radius:var(--radius-md);border:1px solid var(--surface-border);">
-            <span class="p-input-icon-left" style="flex:1;min-width:200px;">
-              <i class="pi pi-search"></i>
-              <input pInputText [(ngModel)]="searchQuery" (input)="loadOrders()" [placeholder]="'COMMON.SEARCH' | translate" style="width:100%;" />
-            </span>
-            <p-dropdown [options]="statusOptions" [(ngModel)]="statusFilter" (onChange)="loadOrders()" [showClear]="true" placeholder="Status" optionLabel="label" optionValue="value" [style]="{ minWidth: '150px' }"></p-dropdown>
-            <p-dropdown [options]="channelOptions" [(ngModel)]="channelFilter" (onChange)="loadOrders()" [showClear]="true" placeholder="Channel" optionLabel="label" optionValue="value" [style]="{ minWidth: '150px' }"></p-dropdown>
-            <p-dropdown [options]="priorityOptions" [(ngModel)]="priorityFilter" (onChange)="loadOrders()" [showClear]="true" placeholder="Priority" optionLabel="label" optionValue="value" [style]="{ minWidth: '130px' }"></p-dropdown>
-          </div>
-          <p-table [value]="orders()" [loading]="loading()" styleClass="p-datatable-sm" [paginator]="true" [rows]="15">
-            <ng-template pTemplate="header">
-              <tr>
-                <th>{{ 'ORDERS.ORDER_NUMBER' | translate }}</th>
-                <th>{{ 'ORDERS.CUSTOMER' | translate }}</th>
-                <th>{{ 'ORDERS.CHANNEL' | translate }}</th>
-                <th>{{ 'ORDERS.PRIORITY' | translate }}</th>
-                <th>{{ 'ORDERS.STATUS' | translate }}</th>
-                <th>{{ 'ORDERS.CREATED' | translate }}</th>
-                <th>{{ 'ORDERS.REQUIRED_DATE' | translate }}</th>
-                <th>{{ 'COMMON.ACTIONS' | translate }}</th>
-              </tr>
-            </ng-template>
-            <ng-template pTemplate="body" let-order>
-              <tr>
-                <td><code style="color:var(--brand-accent);font-size:0.82rem;">{{ order.orderNumber }}</code></td>
-                <td><span style="font-weight:500;">{{ order.customerName }}</span></td>
-                <td><p-tag [value]="order.channel | uppercase" severity="info"></p-tag></td>
-                <td><p-tag [value]="order.priority | titlecase" [severity]="getPrioritySeverity(order.priority)"></p-tag></td>
-                <td><p-tag [value]="formatStatus(order.status)" [severity]="getStatusSeverity(order.status)"></p-tag></td>
-                <td><span style="font-size:0.8rem;color:var(--text-muted);">{{ order.createdAt | date:'MMM d, HH:mm' }}</span></td>
-                <td><span style="font-size:0.8rem;">{{ order.requiredDate | date:'MMM d, yyyy' }}</span></td>
-                <td>
-                  <button pButton icon="pi pi-eye" class="p-button-text p-button-sm" (click)="viewOrder(order)" pTooltip="View"></button>
-                </td>
-              </tr>
-            </ng-template>
-          </p-table>
-        </p-tabPanel>
+  <p-dialog [(visible)]="showCreateOrder" [modal]="true" [style]="{width:'800px',maxWidth:'95vw'}" [header]="'UI.ADD_ORDER' | translate">
+    <div style="display:flex;flex-direction:column;gap:1rem;padding:.25rem 0;">
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.75rem;">
+        <div class="form-field"><label>{{ 'UI.EXTERNAL_ORDER_ID_REQUIRED' | translate }}</label><input pInputText [(ngModel)]="newOrder.externalOrderId" /></div>
+        <div class="form-field"><label>{{ 'UI.SOURCE_SYSTEM_REQUIRED' | translate }}</label><input pInputText [(ngModel)]="newOrder.sourceSystem" /></div>
+        <div class="form-field"><label>{{ 'UI.CUSTOMER_ID_REQUIRED' | translate }}</label><input pInputText [(ngModel)]="newOrder.customerId" /></div>
+        <div class="form-field"><label>{{ 'UI.CUSTOMER_NAME_REQUIRED' | translate }}</label><input pInputText [(ngModel)]="newOrder.customerName" /></div>
+        <div class="form-field"><label>{{ 'UI.CHANNEL_REQUIRED' | translate }}</label><p-dropdown [options]="channelOptions | uiOptions" [(ngModel)]="newOrder.channel" optionLabel="label" optionValue="label"></p-dropdown></div>
+        <div class="form-field"><label>{{ 'UI.PRIORITY_REQUIRED' | translate }}</label><p-dropdown [options]="createPriorityOptions | uiOptions" [(ngModel)]="newOrder.priority" optionLabel="label" optionValue="value"></p-dropdown></div>
+        <div class="form-field"><label>{{ 'UI.ALLOCATION_STRATEGY_REQUIRED' | translate }}</label><p-dropdown [options]="allocationStrategyOptions" [(ngModel)]="newOrder.allocationStrategy"></p-dropdown></div>
+        <div class="form-field"><label>{{ 'UI.REQUESTED_SHIP_DATE_REQUIRED' | translate }}</label><input pInputText type="datetime-local" [(ngModel)]="newOrder.requestedShipDate" /></div>
+      </div>
+      <h4 style="margin:0;">{{ 'UI.SHIPPING_ADDRESS' | translate }}</h4>
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.75rem;">
+        <div class="form-field"><label>{{ 'UI.STREET_REQUIRED' | translate }}</label><input pInputText [(ngModel)]="newOrder.shippingStreet" /></div>
+        <div class="form-field"><label>{{ 'UI.CITY_REQUIRED' | translate }}</label><input pInputText [(ngModel)]="newOrder.shippingCity" /></div>
+        <div class="form-field"><label>{{ 'UI.REGION_REQUIRED' | translate }}</label><input pInputText [(ngModel)]="newOrder.shippingRegion" /></div>
+        <div class="form-field"><label>{{ 'UI.POSTAL_CODE_REQUIRED' | translate }}</label><input pInputText [(ngModel)]="newOrder.shippingPostalCode" /></div>
+        <div class="form-field"><label>{{ 'UI.COUNTRY_REQUIRED' | translate }}</label><input pInputText [(ngModel)]="newOrder.shippingCountry" /></div>
+      </div>
+      <h4 style="margin:0;">{{ 'UI.ORDER_LINES' | translate }}</h4>
+      <div *ngFor="let line of newOrder.lines; let index = index" style="display:grid;grid-template-columns:3fr 100px 85px 36px;gap:.5rem;align-items:end;">
+        <div class="form-field"><label>{{ 'UI.CATALOG_ITEM_REQUIRED' | translate }}</label><p-dropdown [options]="catalogItems()" [(ngModel)]="line.itemId" (onChange)="onOrderLineItemChange(line)" optionLabel="sku" optionValue="id" [filter]="true" [loading]="catalogItemsLoading()" [placeholder]="'UI.SEARCH_BY_SKU_OR_ITEM_NAME' | translate"><ng-template pTemplate="item" let-item><div>{{ item.sku }} — {{ item.name }}</div></ng-template><ng-template pTemplate="selectedItem" let-item>{{ item ? item.sku + ' — ' + item.name : 'Search by SKU or item name' }}</ng-template></p-dropdown></div>
+        <div class="form-field"><label>{{ 'UI.QUANTITY_REQUIRED' | translate }}</label><input pInputText type="number" min="1" [(ngModel)]="line.requestedQuantity" /></div>
+        <div class="form-field"><label>{{ 'UI.UOM_REQUIRED' | translate }}</label><input pInputText [(ngModel)]="line.uomCode" readonly /></div>
+        <button pButton icon="pi pi-trash" class="p-button-text p-button-danger p-button-sm" [disabled]="newOrder.lines.length === 1" (click)="removeOrderLine(index)"></button>
+      </div>
+      <div><button pButton icon="pi pi-plus" [label]="'UI.ADD_LINE' | translate" class="p-button-sm p-button-outlined" (click)="addOrderLine()"></button></div>
+      <div class="form-field"><label>{{ 'UI.NOTES' | translate }}</label><input pInputText [(ngModel)]="newOrder.notes" /></div>
+    </div>
+    <ng-template pTemplate="footer"><button pButton [label]="'UI.CANCEL' | translate" class="p-button-text" (click)="showCreateOrder = false"></button><button pButton [label]="'UI.CREATE_ORDER' | translate" [loading]="creatingOrder()" (click)="createOrder()"></button></ng-template>
+  </p-dialog>
 
-        <!-- Pick Tasks -->
-        <p-tabPanel [header]="'ORDERS.PICK_TASKS' | translate">
-          <p-table [value]="pickTasks()" [loading]="pickLoading()" styleClass="p-datatable-sm">
-            <ng-template pTemplate="header">
-              <tr>
-                <th>Task ID</th>
-                <th>{{ 'ORDERS.ORDER_NUMBER' | translate }}</th>
-                <th>Picker</th>
-                <th>{{ 'ORDERS.PRIORITY' | translate }}</th>
-                <th>Progress</th>
-                <th>{{ 'ORDERS.STATUS' | translate }}</th>
-                <th>Bins</th>
-                <th>{{ 'COMMON.ACTIONS' | translate }}</th>
-              </tr>
-            </ng-template>
-            <ng-template pTemplate="body" let-task>
-              <tr>
-                <td><code style="font-size:0.78rem;">{{ task.id }}</code></td>
-                <td><span style="font-weight:500;">{{ task.orderNumber }}</span></td>
-                <td>{{ task.assignedToName }}</td>
-                <td><p-tag [value]="task.priority | titlecase" [severity]="getPrioritySeverity(task.priority)"></p-tag></td>
-                <td style="min-width:160px;">
-                  <div style="display:flex;align-items:center;gap:0.5rem;">
-                    <p-progressBar [value]="pickProgress(task)" [style]="{'height':'6px','flex':'1'}" [showValue]="false"></p-progressBar>
-                    <span style="font-size:0.75rem;">{{ task.itemsPicked }}/{{ task.itemsTotal }}</span>
-                  </div>
-                </td>
-                <td><p-tag [value]="task.status | titlecase" [severity]="task.status === 'completed' ? 'success' : task.status === 'in_progress' ? 'info' : 'warning'"></p-tag></td>
-                <td><span style="font-size:0.75rem;color:var(--text-muted);">{{ task.bins.join(', ') }}</span></td>
-                <td>
-                  <button pButton icon="pi pi-check" label="Complete" class="p-button-sm" *ngIf="task.status !== 'completed'" (click)="completePick(task)"></button>
-                </td>
-              </tr>
-            </ng-template>
-          </p-table>
-        </p-tabPanel>
+  <p-dialog [(visible)]="showCreatePackTask" [modal]="true" [style]="{width:'760px',maxWidth:'95vw'}" [header]="'UI.ADD_PACK_TASK' | translate">
+    <div style="display:flex;flex-direction:column;gap:1rem;">
+      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.75rem;"><div class="form-field"><label>{{ 'UI.ORDER_REQUIRED' | translate }}</label><p-dropdown [options]="orders()" [(ngModel)]="newPackTask.orderId" (onChange)="onPackOrderChange()" optionLabel="orderNumber" optionValue="id" [filter]="true" [placeholder]="'UI.SELECT_AN_ORDER' | translate"></p-dropdown></div><div class="form-field"><label>{{ 'UI.CONTAINER_TYPE_REQUIRED' | translate }}</label><input pInputText [(ngModel)]="newPackTask.containerType" /></div><div class="form-field"><label>{{ 'UI.ASSIGNED_OPERATOR_REQUIRED' | translate }}</label><p-dropdown [options]="warehouseUsers()" [(ngModel)]="newPackTask.assignedOperatorId" optionLabel="fullName" optionValue="id" [filter]="true" [placeholder]="'UI.SELECT_AN_OPERATOR' | translate"><ng-template pTemplate="item" let-user>{{ user.fullName }} ({{ user.username }})</ng-template></p-dropdown></div></div>
+      <h4 style="margin:0;">{{ 'UI.PACK_ITEMS' | translate }}</h4>
+      <div *ngFor="let item of newPackTask.items; let index = index" style="display:grid;grid-template-columns:2fr 1fr 90px 75px 110px 1fr 36px;gap:.5rem;align-items:end;"><div class="form-field"><label>{{ 'UI.ITEM_ID_REQUIRED' | translate }}</label><input pInputText [(ngModel)]="item.itemId" /></div><div class="form-field"><label>{{ 'UI.SKU_REQUIRED' | translate }}</label><input pInputText [(ngModel)]="item.sku" /></div><div class="form-field"><label>{{ 'UI.QTY_REQUIRED' | translate }}</label><input pInputText type="number" min="1" [(ngModel)]="item.quantity" /></div><div class="form-field"><label>{{ 'UI.UOM_REQUIRED' | translate }}</label><input pInputText [(ngModel)]="item.uomCode" /></div><div class="form-field"><label>{{ 'UI.KG_UNIT' | translate }}</label><input pInputText type="number" min="0" [(ngModel)]="item.weightKgPerUnit" /></div><div class="form-field"><label>{{ 'UI.LOT_NUMBER' | translate }}</label><input pInputText [(ngModel)]="item.lotNumber" /></div><button pButton icon="pi pi-trash" class="p-button-text p-button-danger p-button-sm" [disabled]="newPackTask.items.length === 1" (click)="removePackItem(index)"></button></div>
+      <div><button pButton [label]="'UI.ADD_ITEM' | translate" icon="pi pi-plus" class="p-button-sm p-button-outlined" (click)="addPackItem()"></button></div>
+    </div>
+    <ng-template pTemplate="footer"><button pButton [label]="'UI.CANCEL' | translate" class="p-button-text" (click)="showCreatePackTask = false"></button><button pButton [label]="'UI.CREATE_PACK_TASK' | translate" [loading]="creatingPackTask()" (click)="createPackTask()"></button></ng-template>
+  </p-dialog>
 
-        <!-- Waves -->
-        <p-tabPanel [header]="'ORDERS.WAVES' | translate">
-          <p-table [value]="waves()" [loading]="waveLoading()" styleClass="p-datatable-sm">
-            <ng-template pTemplate="header">
-              <tr>
-                <th>Wave #</th>
-                <th>{{ 'ORDERS.STATUS' | translate }}</th>
-                <th>Orders</th>
-                <th>Operators</th>
-                <th>Created</th>
-                <th>{{ 'COMMON.ACTIONS' | translate }}</th>
-              </tr>
-            </ng-template>
-            <ng-template pTemplate="body" let-wave>
-              <tr>
-                <td><code style="color:var(--brand-accent);font-weight:600;">{{ wave.waveNumber }}</code></td>
-                <td><p-tag [value]="wave.status | titlecase" [severity]="wave.status === 'completed' ? 'success' : wave.status === 'released' ? 'info' : 'warning'"></p-tag></td>
-                <td>{{ wave.orderCount }}</td>
-                <td>{{ wave.assignedOperators.length }} assigned</td>
-                <td><span style="font-size:0.8rem;color:var(--text-muted);">{{ wave.createdAt | date:'MMM d, HH:mm' }}</span></td>
-                <td>
-                  <button pButton icon="pi pi-play" label="Release" class="p-button-sm p-button-outlined" *ngIf="wave.status === 'draft'" (click)="releaseWave(wave)"></button>
-                </td>
-              </tr>
-            </ng-template>
-          </p-table>
-        </p-tabPanel>
-      </p-tabView>
-
-      <!-- Order Detail Dialog -->
-      <p-dialog [(visible)]="showOrderDetail" [modal]="true" [style]="{width:'600px',maxWidth:'95vw'}" [header]="selectedOrder?.orderNumber ?? ''">
-        <div *ngIf="selectedOrder" style="display:flex;flex-direction:column;gap:0.75rem;">
-          <div class="confirm-row"><span>Customer</span><strong>{{ selectedOrder.customerName }}</strong></div>
-          <div class="confirm-row"><span>Status</span><p-tag [value]="formatStatus(selectedOrder.status)" [severity]="getStatusSeverity(selectedOrder.status)"></p-tag></div>
-          <div class="confirm-row"><span>Channel</span><strong>{{ selectedOrder.channel | uppercase }}</strong></div>
-          <div class="confirm-row"><span>Total Items</span><strong>{{ selectedOrder.totalItems }}</strong></div>
-          <h4 style="margin-top:0.5rem;">Order Lines</h4>
-          <p-table [value]="selectedOrder.lines" styleClass="p-datatable-sm">
-            <ng-template pTemplate="header"><tr><th>SKU</th><th>Item</th><th>Qty</th><th>Status</th></tr></ng-template>
-            <ng-template pTemplate="body" let-line>
-              <tr>
-                <td>{{ line.sku }}</td>
-                <td>{{ line.itemName }}</td>
-                <td>{{ line.quantity }} {{ line.uom }}</td>
-                <td><p-tag [value]="line.status | titlecase" severity="info"></p-tag></td>
-              </tr>
-            </ng-template>
-          </p-table>
-        </div>
-      </p-dialog>
-
-      <!-- Create Wave Dialog -->
-      <p-dialog [(visible)]="showWaveDialog" [modal]="true" [style]="{width:'450px'}" [header]="'ORDERS.CREATE_WAVE' | translate">
-        <div style="display:flex;flex-direction:column;gap:1rem;padding:0.5rem 0;">
-          <div class="form-field"><label>Order Count</label><input pInputText type="number" [(ngModel)]="newWaveOrderCount" /></div>
-        </div>
-        <ng-template pTemplate="footer">
-          <button pButton [label]="'COMMON.CANCEL' | translate" class="p-button-text" (click)="showWaveDialog = false"></button>
-          <button pButton [label]="'COMMON.SAVE' | translate" (click)="createWave()"></button>
-        </ng-template>
-      </p-dialog>
-    </app-page-shell>
+  <p-dialog [(visible)]="showCreatePickWave" [modal]="true" [style]="{width:'1000px',maxWidth:'95vw'}" [header]="'UI.CREATE_PICK_WAVE' | translate">
+    <div style="display:flex;flex-direction:column;gap:1rem;">
+      <div style="display:grid;grid-template-columns:1fr 2fr;gap:.75rem;"><div class="form-field"><label>{{ 'UI.WAVE_TYPE_REQUIRED' | translate }}</label><p-dropdown [options]="['Batch', 'SingleOrder']" [(ngModel)]="newPickWave.waveType"></p-dropdown></div><div class="form-field"><label>{{ 'UI.CREATED_BY_USER_REQUIRED' | translate }}</label><input pInputText [value]="createdByUserName()" readonly /></div></div>
+      <h4 style="margin:0;">{{ 'UI.PICK_LINES' | translate }}</h4>
+      <div *ngFor="let line of newPickWave.lines; let index = index" style="border:1px solid var(--surface-border);border-radius:var(--radius-md);padding:.75rem;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.6rem;">
+        <div class="form-field"><label>{{ 'UI.ORDER_REQUIRED' | translate }}</label><p-dropdown [options]="orders()" [(ngModel)]="line.orderId" (onChange)="onPickWaveOrderChange(line)" optionLabel="orderNumber" optionValue="id" [filter]="true" [placeholder]="'UI.SELECT_AN_ORDER' | translate"></p-dropdown></div>
+        <div class="form-field"><label>{{ 'UI.INVENTORY_ITEM_REQUIRED' | translate }}</label><p-dropdown [options]="getInventoryRecordsForLine(line)" [(ngModel)]="line.inventoryRecordId" (onChange)="onPickWaveInventoryRecordChange(line, $event.value)" optionLabel="sku" optionValue="id" [filter]="true" [loading]="inventoryRecordsLoading()" [placeholder]="'UI.SELECT_AN_ITEM_FROM_INVENTORY' | translate"><ng-template pTemplate="item" let-record><div>{{ record.sku }} — {{ record.itemName }} ({{ record.availableQuantity }} {{ record.uomCode }} at {{ storageLocationLabel(record.storageLocationId) }})</div></ng-template><ng-template pTemplate="selectedItem" let-record>{{ record ? record.sku + ' — ' + storageLocationLabel(record.storageLocationId) : 'Select an item from inventory' }}</ng-template></p-dropdown></div>
+        <div class="form-field"><label>{{ 'UI.ITEM_REQUIRED' | translate }}</label><input pInputText [value]="catalogItemName(line.itemId)" readonly /></div>
+        <div class="form-field"><label>{{ 'UI.SKU_REQUIRED' | translate }}</label><input pInputText [(ngModel)]="line.sku" readonly /></div>
+        <div class="form-field"><label>{{ 'UI.SOURCE_BIN_REQUIRED' | translate }}</label><input pInputText [value]="storageLocationLabel(line.sourceBinId)" readonly /></div>
+        <div class="form-field"><label>{{ 'UI.ZONE_REQUIRED' | translate }}</label><input pInputText [value]="zoneLabel(line.zoneId)" readonly /></div>
+        <div class="form-field"><label>{{ 'UI.BIN_LABEL' | translate }}</label><input pInputText [(ngModel)]="line.binLabel" readonly /></div>
+        <div class="form-field"><label>{{ 'UI.QUANTITY_REQUIRED' | translate }}</label><input pInputText type="number" min="1" [(ngModel)]="line.quantity" /></div>
+        <div class="form-field"><label>{{ 'UI.UOM_CODE' | translate }}</label><input pInputText [(ngModel)]="line.uomCode" readonly /></div>
+        <div class="form-field"><label>{{ 'UI.UOM_NAME' | translate }}</label><input pInputText [(ngModel)]="line.uomName" readonly /></div>
+        <div class="form-field"><label>{{ 'UI.LOT_NUMBER' | translate }}</label><input pInputText [(ngModel)]="line.lotNumber" readonly /></div>
+        <div class="form-field"><label>{{ 'UI.PRIORITY' | translate }}</label><p-dropdown [options]="createPriorityOptions | uiOptions" [(ngModel)]="line.priority" optionLabel="label" optionValue="value"></p-dropdown></div>
+        <div class="form-field"><label>{{ 'UI.LENGTH_CM' | translate }}</label><input pInputText type="number" min="0" [(ngModel)]="line.itemLengthCm" /></div><div class="form-field"><label>{{ 'UI.WIDTH_CM' | translate }}</label><input pInputText type="number" min="0" [(ngModel)]="line.itemWidthCm" /></div><div class="form-field"><label>{{ 'UI.HEIGHT_CM' | translate }}</label><input pInputText type="number" min="0" [(ngModel)]="line.itemHeightCm" /></div><div class="form-field"><label>{{ 'UI.WEIGHT_KG' | translate }}</label><input pInputText type="number" min="0" [(ngModel)]="line.itemWeightKg" /></div><div class="form-field"><label>{{ 'UI.EXPIRATION_DATE' | translate }}</label><input pInputText type="datetime-local" [(ngModel)]="line.expirationDate" /></div><div style="display:flex;align-items:end;"><button pButton icon="pi pi-trash" class="p-button-text p-button-danger p-button-sm" [disabled]="newPickWave.lines.length === 1" (click)="removePickWaveLine(index)"></button></div>
+      </div>
+      <div><button pButton [label]="'UI.ADD_PICK_LINE' | translate" icon="pi pi-plus" class="p-button-sm p-button-outlined" (click)="addPickWaveLine()"></button></div>
+    </div>
+    <ng-template pTemplate="footer"><button pButton [label]="'UI.CANCEL' | translate" class="p-button-text" (click)="showCreatePickWave = false"></button><button pButton [label]="'UI.CREATE_PICK_WAVE' | translate" [loading]="creatingPickWave()" (click)="createPickWave()"></button></ng-template>
+  </p-dialog>
+</app-page-shell>

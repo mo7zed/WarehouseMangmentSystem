@@ -16,6 +16,10 @@ const ACCESS_TOKEN_EXPIRES_KEY = 'wms_access_token_expires_at';
 const REFRESH_TOKEN_EXPIRES_KEY = 'wms_refresh_token_expires_at';
 const ROLE_CLAIM = 'http://schemas.microsoft.com/ws/2008/06/identity/claims/role';
 
+export class MobileOnlyRoleError extends Error {
+  constructor() { super('This account is for the mobile app. Please sign in on your phone.'); }
+}
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private http = inject(HttpClient);
@@ -25,7 +29,8 @@ export class AuthService {
   private refreshRequest$: Observable<AuthResponse> | null = null;
 
   private get storage(): Storage | null {
-    return isPlatformBrowser(this.platformId) ? localStorage : null;
+    if (!isPlatformBrowser(this.platformId)) return null;
+    return localStorage.getItem(TOKEN_KEY) ? localStorage : sessionStorage;
   }
 
   private _currentUser = signal<UserProfile | null>(this.loadUser());
@@ -36,13 +41,16 @@ export class AuthService {
   readonly userRole = computed(() => this._currentUser()?.role ?? '');
   readonly userPermissions = computed(() => this._currentUser()?.permissions ?? []);
 
-  login(usernameOrEmail: string, password: string, captchaToken = 'string'): Observable<AuthResponse> {
+  login(usernameOrEmail: string, password: string, captchaToken = 'string', remember = false): Observable<AuthResponse> {
     const body: LoginRequest = { usernameOrEmail, password, captchaToken };
 
     return this.http.post<AuthResponse>(`${this.apiUrl}/auth/login`, body, {
       context: new HttpContext().set(SKIP_AUTH, true).set(SKIP_REFRESH, true),
     }).pipe(
-      tap(res => this.handleAuthSuccess(res)),
+      tap(res => {
+        this.clearSession(false);
+        this.handleAuthSuccess(res, remember);
+      }),
     );
   }
 
@@ -87,11 +95,11 @@ export class AuthService {
   }
 
   clearSession(navigateToLogin = true): void {
-    this.storage?.removeItem(TOKEN_KEY);
-    this.storage?.removeItem(REFRESH_TOKEN_KEY);
-    this.storage?.removeItem(USER_KEY);
-    this.storage?.removeItem(ACCESS_TOKEN_EXPIRES_KEY);
-    this.storage?.removeItem(REFRESH_TOKEN_EXPIRES_KEY);
+    if (isPlatformBrowser(this.platformId)) {
+      for (const storage of [localStorage, sessionStorage]) {
+        for (const key of [TOKEN_KEY, REFRESH_TOKEN_KEY, USER_KEY, ACCESS_TOKEN_EXPIRES_KEY, REFRESH_TOKEN_EXPIRES_KEY]) storage.removeItem(key);
+      }
+    }
     this._currentUser.set(null);
     this._isAuthenticated.set(false);
 
@@ -128,17 +136,26 @@ export class AuthService {
 
   hasRole(roles: string[]): boolean {
     const userRole = this.userRole().toLowerCase();
-    return roles.map(role => role.toLowerCase()).includes(userRole);
+    return roles.map(role => this.normalizeRole(role)).includes(userRole);
   }
 
-  private handleAuthSuccess(res: AuthResponse): void {
-    const user = this.buildUserFromToken(res.accessToken);
+  isMobileOnlyRole(role = this.userRole()): boolean {
+    return ['operator', 'worker', 'supervisor', 'returnsspecialist'].includes(this.normalizeRole(role));
+  }
 
-    this.storage?.setItem(TOKEN_KEY, res.accessToken);
-    this.storage?.setItem(REFRESH_TOKEN_KEY, res.refreshToken);
-    this.storage?.setItem(ACCESS_TOKEN_EXPIRES_KEY, res.accessTokenExpiresAtUtc);
-    this.storage?.setItem(REFRESH_TOKEN_EXPIRES_KEY, res.refreshTokenExpiresAtUtc);
-    this.storage?.setItem(USER_KEY, JSON.stringify(user));
+  private handleAuthSuccess(res: AuthResponse, remember?: boolean): void {
+    const user = this.buildUserFromToken(res.accessToken);
+    if (this.isMobileOnlyRole(user.role)) {
+      this.clearSession(false);
+      throw new MobileOnlyRoleError();
+    }
+    const storage = remember === undefined ? this.storage : isPlatformBrowser(this.platformId) ? (remember ? localStorage : sessionStorage) : null;
+
+    storage?.setItem(TOKEN_KEY, res.accessToken);
+    storage?.setItem(REFRESH_TOKEN_KEY, res.refreshToken);
+    storage?.setItem(ACCESS_TOKEN_EXPIRES_KEY, res.accessTokenExpiresAtUtc);
+    storage?.setItem(REFRESH_TOKEN_EXPIRES_KEY, res.refreshTokenExpiresAtUtc);
+    storage?.setItem(USER_KEY, JSON.stringify(user));
     this._currentUser.set(user);
     this._isAuthenticated.set(true);
   }

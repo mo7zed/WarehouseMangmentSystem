@@ -1,23 +1,15 @@
 .tab-bar { display:flex; gap:0.25rem; background:var(--surface-overlay); padding:0.25rem; border-radius:var(--radius-md); width:fit-content; }
     .tab-btn { padding:0.5rem 1.25rem; border:none; border-radius:var(--radius-sm); background:transparent; color:var(--text-muted); font-size:0.85rem; font-weight:500; cursor:pointer; transition:all var(--transition-fast); }
     .tab-btn.active { background:var(--surface-card); color:var(--brand-accent); box-shadow:var(--shadow-sm); }
-    .status-filter-chip { padding:0.25rem 0.7rem; border-radius:20px; font-size:0.75rem; font-weight:600; cursor:pointer; background:var(--surface-overlay); color:var(--text-muted); transition:all var(--transition-fast); }
-    .status-filter-chip.active { background:rgba(0,180,216,0.15); color:var(--brand-accent); }
+    .status-filter-chip { border:0; font-family:inherit; padding:0.25rem 0.7rem; border-radius:20px; font-size:0.75rem; font-weight:600; cursor:pointer; background:var(--surface-overlay); color:var(--text-muted); transition:all var(--transition-fast); }
+    .status-filter-chip.active { background:rgba(219,37,50,0.15); color:var(--brand-accent); }
     .suggested-bin { font-size:0.82rem; color:var(--text-secondary); display:flex;align-items:center; }
-    .wizard-step-title { font-size:1rem; font-weight:600; color:var(--text-primary); margin-bottom:1.25rem; }
-    .wizard-step { min-height:200px; }
     .form-field { display:flex;flex-direction:column;gap:0.4rem; }
     .form-field label { font-size:0.8rem;font-weight:600;color:var(--text-secondary); }
     .form-field input, .form-field .p-dropdown, .form-field .p-inputnumber, .form-field .p-calendar { width:100%; }
     .form-field--full { grid-column: 1 / -1; }
     .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1.25rem; }
     .form-grid--lines { grid-template-columns: repeat(4, 1fr); }
-    .qc-checklist { display:flex;flex-direction:column;gap:0.75rem; }
-    .qc-item { display:flex;align-items:center;gap:0.75rem;font-size:0.85rem;color:var(--text-primary);cursor:pointer; }
-    .confirm-summary { background:var(--surface-overlay);border-radius:var(--radius-md);overflow:hidden; }
-    .confirm-row { display:flex;justify-content:space-between;padding:0.75rem 1rem;border-bottom:1px solid var(--surface-border);font-size:0.85rem; }
-    .confirm-row:last-child { border-bottom:none; }
-    .confirm-row span { color:var(--text-secondary); }
     .asn-row { cursor:pointer; }
     .asn-row:hover { background:var(--surface-hover); }
     .asn-lines-panel { padding:0.75rem 1rem 1rem 2.5rem; background:var(--surface-overlay); border-radius:var(--radius-md); }
@@ -29,4 +21,23 @@
     .lines-header h4 { margin:0; font-size:0.9rem; }
     .line-card { background:var(--surface-overlay); border:1px solid var(--surface-border); border-radius:var(--radius-md); padding:0.75rem; margin-bottom:0.75rem; }
     .line-card-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem; font-size:0.8rem; font-weight:600; color:var(--text-secondary); }
-    :host ::ng-deep .warehouse-select { min-width:220px; }
+    .shipment-summary { display:flex; flex-wrap:wrap; gap:1rem; align-items:center; margin-bottom:1rem; font-size:.84rem; color:var(--text-secondary); }
+    .detail-actions-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-top:1rem; }
+    .detail-actions-grid .form-field { margin-bottom:.75rem; }
+    .detail-lists { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-top:.5rem; font-size:.82rem; }
+    .detail-lists h4 { margin-bottom:.5rem; }
+    .detail-lists p { margin:.25rem 0; color:var(--text-secondary); }
+    .form-grid--recommendation { grid-template-columns:repeat(4, minmax(0, 1fr)); }
+    .form-field--item { grid-column:span 2; }
+    .item-option { display:flex; gap:.5rem; align-items:center; }
+    .item-option strong { color:var(--brand-accent); font-family:monospace; }
+    .item-option span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    :host ::ng-deep .recommendation-calendar { display:flex; width:100%; }
+    :host ::ng-deep .recommendation-calendar .p-inputtext { width:100%; min-width:0; }
+    :host ::ng-deep .recommendation-calendar .p-datepicker-trigger { flex:0 0 auto; }
+    .recommendation-result { display:flex; align-items:center; gap:1rem; margin-top:1.25rem; padding:1rem; border:1px solid rgba(219,37,50,.25); border-radius:var(--radius-md); background:rgba(219,37,50,.06); }
+    .recommendation-result__icon { display:grid; place-items:center; width:2.5rem; height:2.5rem; border-radius:50%; background:rgba(219,37,50,.15); color:var(--brand-accent); }
+    .recommendation-result__label, .recommendation-result__mode { display:block; font-size:.78rem; color:var(--text-secondary); }
+    .recommendation-result strong { display:block; margin:.12rem 0; color:var(--text-primary); }
+    @media (max-width: 900px) { .form-grid--recommendation { grid-template-columns:1fr 1fr; } .form-field--item { grid-column:auto; } }
+    @media (max-width: 700px) { .form-grid--lines, .form-grid--recommendation, .detail-actions-grid, .detail-lists { grid-template-columns:1fr; } }

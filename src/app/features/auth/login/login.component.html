@@ -11,29 +11,22 @@
       <div class="login-container animate-fade-in-up">
         <!-- Logo -->
         <div class="login-logo">
-          <div class="logo-icon-lg">
-            <i class="pi pi-box"></i>
-          </div>
-          <div>
-            <h1 class="brand-name">TACHYON</h1>
-            <p class="brand-sub">Warehouse Management System</p>
-          </div>
-        </div>
-
-        <!-- Language Switcher -->
+          <img class="brand-wordmark" src="assets/brand/tachyon-logo.png" alt="Tachyon" width="245" height="59" />
+<p class="brand-sub">{{ 'APP.WMS' | translate }}</p></div>
+<!-- Language Switcher -->
         <div class="lang-switcher">
           <button
             class="lang-btn"
             [class.active]="currentLang() === 'en'"
             (click)="setLang('en')"
             id="lang-en-btn"
-          >&#x1F1EC;&#x1F1E7; EN</button>
+          >{{ 'UI.ENGLISH' | translate }}</button>
           <button
             class="lang-btn"
             [class.active]="currentLang() === 'ar'"
             (click)="setLang('ar')"
             id="lang-ar-btn"
-          >&#x1F1F8;&#x1F1E6; AR</button>
+          >العربية</button>
         </div>
 
         <!-- Heading -->
@@ -74,7 +67,7 @@
             <label for="password-input">{{ 'AUTH.PASSWORD' | translate }}</label>
             <div class="input-wrapper">
               <p-password
-                id="password-input"
+                inputId="password-input" autocomplete="current-password"
                 formControlName="password"
                 [placeholder]="'AUTH.PASSWORD' | translate"
                 [feedback]="false"
@@ -112,6 +105,6 @@
         </form>
 
         <!-- Footer -->
-        <p class="login-footer">`r`n          &copy; {{ year }} Tachyon WMS &middot; All rights reserved`r`n        </p>
+        <p class="login-footer">&copy; {{ year }} Tachyon WMS · {{ 'APP.RIGHTS' | translate }}</p>
       </div>
     </div>

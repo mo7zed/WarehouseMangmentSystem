@@ -9,13 +9,17 @@ import { BadgeModule } from 'primeng/badge';
 import { AvatarModule } from 'primeng/avatar';
 import { AuthService } from '../../core/auth/auth.service';
 import { LayoutService } from '../../core/services/layout.service';
+import { RealtimeNotificationService } from '../../core/realtime/realtime-notification.service';
+import { WarehouseContextService } from '../../core/warehouse/warehouse-context.service';
+import { FormsModule } from '@angular/forms';
+import { DropdownModule } from 'primeng/dropdown';
 
 @Component({
   selector: 'app-topbar',
   standalone: true,
   imports: [
     CommonModule, RouterLink, TranslateModule,
-    ButtonModule, OverlayPanelModule, BadgeModule, AvatarModule,
+    ButtonModule, OverlayPanelModule, BadgeModule, AvatarModule, FormsModule, DropdownModule,
   ],
   templateUrl: './topbar.component.html',
   styleUrl: './topbar.component.scss'
@@ -25,16 +29,17 @@ export class TopbarComponent implements OnInit {
   private translate = inject(TranslateService);
   private router = inject(Router);
   private layout = inject(LayoutService);
+  private realtimeNotifications = inject(RealtimeNotificationService);
+  private warehouseContext = inject(WarehouseContextService);
 
   user = this.authService.currentUser;
   currentLang = signal<string>('en');
 
-  notifCount = signal(3);
-  notifications = signal([
-    { id: '1', type: 'warning', title: 'Low Stock Alert', message: 'Item SKU-001 is below minimum threshold', timestamp: new Date(), read: false },
-    { id: '2', type: 'danger',  title: 'Expiry Warning', message: '5 items expiring within 30 days', timestamp: new Date(Date.now() - 3600000), read: false },
-    { id: '3', type: 'info',    title: 'Sync Complete', message: 'TMS sync completed successfully', timestamp: new Date(Date.now() - 7200000), read: true },
-  ]);
+  readonly notifCount = this.realtimeNotifications.unreadCount;
+  readonly notifications = this.realtimeNotifications.notifications;
+  readonly realtimeConnected = this.realtimeNotifications.isConnected;
+  readonly warehouses = this.warehouseContext.warehouses;
+  readonly selectedWarehouseId = this.warehouseContext.selectedWarehouseId;
 
 
   greeting(): string {
@@ -65,7 +70,8 @@ export class TopbarComponent implements OnInit {
       this.translate.currentLang ||
       'en';
     this.currentLang.set(saved);
-  
+    this.warehouseContext.initialize();
+    void this.realtimeNotifications.start();
   }
 
   toggleLanguage(): void {
@@ -85,22 +91,24 @@ export class TopbarComponent implements OnInit {
   }
 
   markAllRead(): void {
-    this.notifications.update(list => list.map(n => ({ ...n, read: true })));
-    this.notifCount.set(0);
+    this.realtimeNotifications.markAllRead();
   }
-  goToProfile(userMenu: any): void {
+
+  selectWarehouse(warehouseId: string): void {
+    this.warehouseContext.selectWarehouse(warehouseId);
+  }
+  goToProfile(userMenu: { hide(): void }): void {
   userMenu.hide();
-  this.router.navigate(['/admin']);
+  this.router.navigate(['/profile']);
 }
 
-changePassword(userMenu: any): void {
+changePassword(userMenu: { hide(): void }): void {
   userMenu.hide();
 
-  // TODO
-  // this.router.navigate(['/change-password']);
+  this.router.navigate(['/profile'], { fragment: 'password' });
 }
 
-logout(userMenu: any): void {
+logout(userMenu: { hide(): void }): void {
   userMenu.hide();
   this.authService.logout();
 }

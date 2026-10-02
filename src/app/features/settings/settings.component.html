@@ -16,6 +16,7 @@
 
       <p-tabView styleClass="settings-tabs">
         <p-tabPanel [header]="'SETTINGS.WAREHOUSE_SETUP' | translate">
+          <p>{{ 'API_FIXES.WAREHOUSE_LIMIT' | translate }}</p>
           <div class="settings-stat-grid">
             <div class="settings-stat">
               <div class="settings-stat__icon settings-stat__icon--total">
@@ -87,7 +88,7 @@
               [rows]="10"
               [rowsPerPageOptions]="[10, 25, 50]"
               [showCurrentPageReport]="true"
-              currentPageReportTemplate="{first}â€“{last} / {totalRecords}"
+              currentPageReportTemplate="{first}–{last} / {totalRecords}"
               [scrollable]="filteredWarehouses().length > 8"
               [scrollHeight]="filteredWarehouses().length > 8 ? 'min(420px, 50vh)' : undefined">
               <ng-template pTemplate="header">
@@ -125,7 +126,7 @@
                   <td>
                     <span class="p-column-title">{{ 'SETTINGS.STATUS' | translate }}</span>
                     <p-tag
-                      [value]="warehouse.operationalStatus"
+                      [value]="warehouse.operationalStatus | uiLabel"
                       [severity]="getStatusSeverity(warehouse.operationalStatus)"></p-tag>
                   </td>
                   <td>
@@ -140,7 +141,7 @@
       rounded="true"
       outlined="true"
       class="p-button-sm"
-      [pTooltip]="'SETTINGS.ACTIVATE_WAREHOUSE' | translate"
+      [pTooltip]="'SETTINGS.ACTIVATE_WAREHOUSE' | translate" [attr.aria-label]="'SETTINGS.ACTIVATE_WAREHOUSE' | translate"
       [loading]="activatingId() === warehouse.id"
       (click)="confirmActivateWarehouse(warehouse)">
     </button>
@@ -154,33 +155,13 @@
     rounded="true"
     outlined="true"
     class="p-button-sm"
-    [pTooltip]="'SETTINGS.SETUP_LAYOUT' | translate"
+    [pTooltip]="'SETTINGS.SETUP_LAYOUT' | translate" [attr.aria-label]="'SETTINGS.SETUP_LAYOUT' | translate"
     (click)="openSetupWizard(warehouse)">
   </button>
 
-  <button
-    pButton
-    type="button"
-    icon="pi pi-pencil"
-    severity="warning"
-    rounded="true"
-    outlined="true"
-    class="p-button-sm"
-    [pTooltip]="'COMMON.EDIT' | translate"
-    (click)="editWarehouse(warehouse)">
-  </button>
 
-  <button
-    pButton
-    type="button"
-    icon="pi pi-trash"
-    severity="danger"
-    rounded="true"
-    outlined="true"
-    class="p-button-sm"
-    [pTooltip]="'COMMON.DELETE' | translate"
-    (click)="deleteWarehouse(warehouse)">
-  </button>
+
+
 </div>
                   </td>
                 </tr>
@@ -243,7 +224,7 @@
       styleClass="wms-dialog"
       [visible]="displayWarehouseDialog()"
       (visibleChange)="displayWarehouseDialog.set($event)"
-      [header]="(isEditMode() ? 'SETTINGS.EDIT_WAREHOUSE' : 'SETTINGS.CREATE_WAREHOUSE') | translate"
+      [header]="'SETTINGS.CREATE_WAREHOUSE' | translate"
       [modal]="true"
       [draggable]="false"
       [style]="{ width: 'min(840px, 96vw)' }"
@@ -258,7 +239,7 @@
           <div class="form-row">
             <div class="form-field">
               <label>{{ 'SETTINGS.CODE' | translate }} *</label>
-              <input pInputText formControlName="code" [readonly]="isEditMode()" />
+              <input pInputText formControlName="code" maxlength="10" />
             </div>
             <div class="form-field">
               <label>{{ 'SETTINGS.NAME' | translate }} *</label>

@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable, forkJoin, map, of } from 'rxjs';
+import { Observable, forkJoin, map, of, defer, catchError, timeout } from 'rxjs';
 import {
   AdminRole,
   AdminUser,
@@ -96,11 +96,14 @@ export class AdminService {
   }
 
   getSystemHealth(): Observable<SystemHealth> {
-    return of({
-      apiStatus: 'healthy',
-      uptime: 'Live API',
-      lastChecked: new Date(),
-      services: [{ name: 'REST API', status: 'up', latencyMs: 0 }],
+    return defer(() => {
+      const started = performance.now();
+      // This authenticated read measures connectivity, not overall service health.
+      return this.api.get<unknown>('warehouses').pipe(
+        timeout(10000),
+        map((): SystemHealth => ({ apiStatus: 'reachable', latencyMs: Math.round(performance.now() - started), lastChecked: new Date() })),
+        catchError(() => of<SystemHealth>({ apiStatus: 'unreachable', latencyMs: null, lastChecked: new Date() })),
+      );
     });
   }
 

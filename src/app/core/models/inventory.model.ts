@@ -1,4 +1,6 @@
 export interface InventoryItem {
+  /** Preserve the catalog's unit name separately from its API code. */
+  uomName?: string;
   id: string;
   sku: string;
   name: string;
@@ -77,12 +79,15 @@ export interface CreateCycleCountDto {
   initiatedBy: string;
 }
 
-/** The count-result endpoint accepts one or more task results. */
+/** Records the counted items for one count task. */
 export interface SubmitCycleCountResultsDto {
-  results: Array<{
-    countTaskId: string;
-    countedQuantity: number;
-    [key: string]: unknown;
+  countTaskId: string;
+  countedItems: Array<{
+    itemId: string;
+    countedQuantityAmount: number;
+    uomCode: string;
+    uomName: string;
+    lotNumber?: string | null;
   }>;
 }
 
@@ -135,4 +140,33 @@ export interface InventoryFilter {
   status?: string;
   strategy?: string;
   zoneId?: string;
+}
+
+/** A physical stock balance held at one storage location. */
+export interface InventoryRecord {
+  id: string;
+  itemId: string;
+  itemName: string;
+  sku: string;
+  storageLocationId: string;
+  quantity: number;
+  reservedQuantity: number;
+  availableQuantity: number;
+  uomCode: string;
+  uomName: string;
+  lotNumber?: string | null;
+  serialNumber?: string | null;
+  expirationDate?: string | null;
+  receivedDate: string;
+  status: string;
+  lastMovementAt?: string | null;
+}
+
+export interface InventoryReservationRequest {
+  orderId: string;
+  quantity: number;
+}
+
+export interface InventoryQuarantineRequest {
+  reason: string;
 }

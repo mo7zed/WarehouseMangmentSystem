@@ -39,15 +39,23 @@
             "styles": [
               "src/styles.scss"
             ],
-            "scripts": [],
-            "server": "src/main.server.ts",
-            "prerender": true,
-            "ssr": {
-              "entry": "server.ts"
-            }
+            "scripts": []
           },
           "configurations": {
+            "pages": {
+              "ssr": false,
+              "prerender": false,
+              "tsConfig": "tsconfig.pages.json",
+              "baseHref": "/WarehouseMangmentSystem/",
+              "fileReplacements": [{ "replace": "src/environments/environment.ts", "with": "src/environments/environment.pages.ts" }]
+            },
+            "ssr": {
+              "server": "src/main.server.ts",
+              "prerender": true,
+              "ssr": { "entry": "server.ts" }
+            },
             "production": {
+              "fileReplacements": [{ "replace": "src/environments/environment.ts", "with": "src/environments/environment.prod.ts" }],
               "budgets": [
                 {
                   "type": "initial",

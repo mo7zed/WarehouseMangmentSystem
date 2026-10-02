@@ -1,4 +1,6 @@
+import { UiLabelPipe, UiOptionsPipe } from '../../../shared/pipes/ui-label.pipe';
 import { Component, OnInit, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TranslateModule } from '@ngx-translate/core';
@@ -18,6 +20,7 @@ import { CreateStorageLocationDto, StorageLocation } from '../storage-location.m
 import { WarehouseService } from '../../settings/warehouse.service';
 import { Warehouse, WarehouseAisle, WarehouseRack, WarehouseShelf, WarehouseZone } from '../../settings/warehouse.model';
 import { STORAGE_TYPE_OPTIONS } from '../../settings/warehouse-layout.constants';
+import { WarehouseContextService } from '../../../core/warehouse/warehouse-context.service';
 
 const WAREHOUSE_STORAGE_KEY = 'wms_selected_warehouse_id';
 
@@ -31,7 +34,7 @@ interface LayoutOption {
 @Component({
   selector: 'app-bin-tree',
   standalone: true,
-  imports: [
+  imports: [UiLabelPipe, UiOptionsPipe,
     CommonModule,
     FormsModule,
     TranslateModule,
@@ -52,6 +55,7 @@ export class BinTreeComponent implements OnInit {
   private storageService = inject(StorageLocationService);
   private warehouseService = inject(WarehouseService);
   private messageService = inject(MessageService);
+  private warehouseContext = inject(WarehouseContextService);
 
   locations = signal<StorageLocation[]>([]);
   warehouseOptions = signal<{ label: string; value: string }[]>([]);
@@ -78,10 +82,18 @@ export class BinTreeComponent implements OnInit {
   storageTypeOptions = [...STORAGE_TYPE_OPTIONS];
   createForm = this.emptyCreateForm();
   private layoutZones: WarehouseZone[] = [];
+  private layoutLabels = new Map<string, string>();
 
-  ngOnInit(): void {
-    this.loadWarehouses();
+  constructor() {
+    this.warehouseContext.warehouseSelectionChanges.pipe(takeUntilDestroyed()).subscribe(warehouseId => {
+      const nextWarehouseId = warehouseId ?? '';
+      if (nextWarehouseId === this.selectedWarehouseId) return;
+      this.selectedWarehouseId = nextWarehouseId;
+      this.onWarehouseChange();
+    });
   }
+
+  ngOnInit(): void { this.warehouseContext.initialize(); }
 
   loadWarehouses(): void {
     this.warehouseService.getWarehouses().subscribe({
@@ -288,6 +300,11 @@ export class BinTreeComponent implements OnInit {
     return 'info';
   }
 
+  /** Shows the human-readable layout code while retaining the ID for API operations. */
+  layoutLabel(id: string): string {
+    return this.layoutLabels.get(id) ?? id;
+  }
+
   private getWarehouseLabel(warehouse: Warehouse): string {
     const parts = [warehouse.code, warehouse.name].filter(Boolean);
     return parts.length ? parts.join(' - ') : warehouse.id;
@@ -305,6 +322,8 @@ export class BinTreeComponent implements OnInit {
     this.warehouseService.getWarehouseById(this.selectedWarehouseId).subscribe({
       next: warehouse => {
         this.layoutZones = warehouse.zones ?? [];
+        this.layoutLabels = new Map();
+        this.indexLayoutItems(this.layoutZones);
         this.zoneOptions.set(this.toOptions(this.layoutZones));
         this.layoutLoading.set(false);
       },
@@ -325,9 +344,18 @@ export class BinTreeComponent implements OnInit {
 
   private toOptions(items: Array<WarehouseZone | WarehouseAisle | WarehouseRack | WarehouseShelf>): LayoutOption[] {
     return items.map(item => ({
-      label: item.code ? `${item.code} (${item.id})` : item.id,
+      label: item.code || ('name' in item ? item.name : undefined) || item.id,
       value: item.id,
     }));
+  }
+
+  private indexLayoutItems(items: Array<WarehouseZone | WarehouseAisle | WarehouseRack | WarehouseShelf>): void {
+    for (const item of items) {
+      this.layoutLabels.set(item.id, item.code || ('name' in item ? item.name : undefined) || item.id);
+      if ('aisles' in item) this.indexLayoutItems(item.aisles ?? []);
+      if ('racks' in item) this.indexLayoutItems(item.racks ?? []);
+      if ('shelves' in item) this.indexLayoutItems(item.shelves ?? []);
+    }
   }
 
   private emptyCreateForm(): CreateStorageLocationForm {

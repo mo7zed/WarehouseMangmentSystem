@@ -1,4 +1,6 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { TranslateModule } from '@ngx-translate/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { RouterOutlet } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { SidebarComponent } from '../sidebar/sidebar.component';
@@ -12,7 +14,7 @@ import { LayoutService } from '../../core/services/layout.service';
 @Component({
   selector: 'app-layout',
   standalone: true,
-  imports: [
+  imports: [TranslateModule,
     CommonModule,
     RouterOutlet,
     SidebarComponent,
@@ -26,6 +28,7 @@ import { LayoutService } from '../../core/services/layout.service';
 export class AppLayoutComponent implements OnInit {
   private translate = inject(TranslateService);
   private layout = inject(LayoutService);
+  private destroyRef = inject(DestroyRef);
 
   isRTL = () => this.translate.currentLang === 'ar';
   mobileMenuOpen = this.layout.mobileMenuOpen;
@@ -35,7 +38,7 @@ export class AppLayoutComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.translate.onLangChange.subscribe((event) => {
+    this.translate.onLangChange.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((event) => {
       applyDocumentLanguage(event.lang);
     });
 

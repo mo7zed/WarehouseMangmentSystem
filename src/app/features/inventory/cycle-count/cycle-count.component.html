@@ -1,10 +1,12 @@
 <div class="cycle-count-page animate-fade-in">
   <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem;">
     <div>
-      <h1 class="page-title">Cycle Counting</h1>
-      <p class="page-subtitle">Manage and track warehouse cycle counts</p>
+      <h1 class="page-title">{{ 'UI.CYCLE_COUNTING' | translate }}</h1>
+      <p class="page-subtitle">{{ 'UI.MANAGE_AND_TRACK_WAREHOUSE_CYCLE_COUNTS' | translate }}</p>
     </div>
-    <button pButton icon="pi pi-plus" label="New Count" class="p-button-sm" id="new-cycle-count-btn" (click)="startNewCount()"></button>
+    <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
+      <button pButton icon="pi pi-plus" [label]="'UI.NEW_COUNT' | translate" class="p-button-sm" id="new-cycle-count-btn" (click)="startNewCount()" [disabled]="!selectedWarehouseId"></button>
+    </div>
   </div>
 
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:1rem;margin-bottom:1.5rem;" class="stagger-children">
@@ -15,11 +17,11 @@
     </div>
   </div>
 
-  <div class="section-card">
+  <div class="section-card" *ngIf="selectedWarehouseId; else selectWarehouse">
     <p-table [value]="counts()" [loading]="loading()" styleClass="p-datatable-sm" id="cycle-count-table">
       <ng-template pTemplate="header">
         <tr>
-          <th>Initiated By</th><th>Locations</th><th>Scheduled</th><th>Progress</th><th>Status</th><th>Threshold</th><th>Actions</th>
+          <th>{{ 'UI.INITIATED_BY' | translate }}</th><th>{{ 'UI.LOCATIONS' | translate }}</th><th>{{ 'UI.SCHEDULED' | translate }}</th><th>{{ 'UI.PROGRESS' | translate }}</th><th>{{ 'UI.STATUS' | translate }}</th><th>{{ 'UI.THRESHOLD' | translate }}</th><th>{{ 'UI.ACTIONS' | translate }}</th>
         </tr>
       </ng-template>
       <ng-template pTemplate="body" let-count>
@@ -38,12 +40,12 @@
               <span style="font-size:0.75rem;min-width:50px;">{{ count.countTasks.length }} tasks</span>
             </div>
           </td>
-          <td><p-tag [value]="count.status" [severity]="getStatusSeverity(count.status)"></p-tag></td>
+          <td><p-tag [value]="count.status | uiLabel" [severity]="getStatusSeverity(count.status)"></p-tag></td>
           <td>{{ count.varianceThreshold }}</td>
           <td>
             <div style="display:flex;gap:0.35rem;">
-              <button pButton icon="pi pi-play" class="p-button-text p-button-sm" *ngIf="count.status.toLowerCase() === 'planned'" label="Release" (click)="startCount(count)"></button>
-              <button pButton icon="pi pi-eye" class="p-button-text p-button-sm" label="View" (click)="viewCount(count)"></button>
+              <button pButton icon="pi pi-play" class="p-button-text p-button-sm" *ngIf="count.status.toLowerCase() === 'planned'" [label]="'UI.RELEASE' | translate" (click)="startCount(count)"></button>
+              <button pButton icon="pi pi-eye" class="p-button-text p-button-sm" [label]="'UI.VIEW' | translate" (click)="viewCount(count)"></button>
             </div>
           </td>
         </tr>
@@ -51,10 +53,15 @@
     </p-table>
   </div>
 
-  <p-dialog header="New Cycle Count" [modal]="true" [visible]="showCreateDialog()" (visibleChange)="showCreateDialog.set($event)" [style]="{ width: '32rem' }">
+  <ng-template #selectWarehouse>
+    <div class="section-card" style="text-align:center;color:var(--text-muted);padding:2rem;">
+      {{ 'UI.SELECT_A_TARGET_WAREHOUSE_TO_LOAD_ITS_CYCLE_COUNTS' | translate }}</div>
+  </ng-template>
+
+  <p-dialog [header]="'UI.NEW_CYCLE_COUNT' | translate" [modal]="true" [visible]="showCreateDialog()" (visibleChange)="showCreateDialog.set($event)" [style]="{ width: '32rem' }">
     <div style="display:grid;gap:1rem;">
       <div>
-        <label for="target-locations" style="display:block;margin-bottom:0.35rem;">Storage locations</label>
+        <label for="target-locations" style="display:block;margin-bottom:0.35rem;">{{ 'UI.STORAGE_LOCATIONS' | translate }}</label>
         <p-multiSelect
           inputId="target-locations"
           [options]="storageLocations()"
@@ -64,12 +71,12 @@
           [filter]="true"
           filterBy="binCode,zoneId"
           [loading]="optionsLoading()"
-          placeholder="Select storage locations"
+          [placeholder]="'UI.SELECT_STORAGE_LOCATIONS' | translate"
           styleClass="w-full">
         </p-multiSelect>
       </div>
       <div>
-        <label for="target-items" style="display:block;margin-bottom:0.35rem;">Items</label>
+        <label for="target-items" style="display:block;margin-bottom:0.35rem;">{{ 'UI.ITEMS' | translate }}</label>
         <p-multiSelect
           inputId="target-items"
           [options]="catalogItems()"
@@ -79,21 +86,21 @@
           [filter]="true"
           filterBy="name,sku"
           [loading]="optionsLoading()"
-          placeholder="Select items"
+          [placeholder]="'UI.SELECT_ITEMS' | translate"
           styleClass="w-full">
         </p-multiSelect>
       </div>
       <div>
-        <label for="scheduled-date" style="display:block;margin-bottom:0.35rem;">Scheduled date</label>
+        <label for="scheduled-date" style="display:block;margin-bottom:0.35rem;">{{ 'UI.SCHEDULED_DATE' | translate }}</label>
         <input id="scheduled-date" type="datetime-local" [(ngModel)]="newCount.scheduledDate" style="width:100%;">
       </div>
       <div>
-        <label for="variance-threshold" style="display:block;margin-bottom:0.35rem;">Variance threshold</label>
+        <label for="variance-threshold" style="display:block;margin-bottom:0.35rem;">{{ 'UI.VARIANCE_THRESHOLD' | translate }}</label>
         <p-inputNumber inputId="variance-threshold" [(ngModel)]="newCount.varianceThreshold" [min]="0" styleClass="w-full"></p-inputNumber>
       </div>
       <div style="display:flex;justify-content:flex-end;gap:0.5rem;">
-        <button pButton label="Cancel" class="p-button-text" (click)="showCreateDialog.set(false)"></button>
-        <button pButton label="Create Count" [loading]="submitting()" (click)="createCount()"></button>
+        <button pButton [label]="'UI.CANCEL' | translate" class="p-button-text" (click)="showCreateDialog.set(false)"></button>
+        <button pButton [label]="'UI.CREATE_COUNT' | translate" [loading]="submitting()" (click)="createCount()"></button>
       </div>
     </div>
   </p-dialog>

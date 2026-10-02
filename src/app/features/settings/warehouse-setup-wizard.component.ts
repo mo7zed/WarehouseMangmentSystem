@@ -1,3 +1,4 @@
+import { UiLabelPipe, UiOptionsPipe } from '../../shared/pipes/ui-label.pipe';
 import { Component, EventEmitter, Input, OnInit, Output, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
@@ -38,7 +39,7 @@ function minLessThanMax(minKey: string, maxKey: string) {
 @Component({
   selector: 'app-warehouse-setup-wizard',
   standalone: true,
-  imports: [
+  imports: [UiLabelPipe, UiOptionsPipe,
     CommonModule,
     ReactiveFormsModule,
     TranslateModule,
@@ -69,6 +70,7 @@ export class WarehouseSetupWizardComponent implements OnInit {
   ctx = signal<WarehouseLayoutContext>({ warehouseId: '' });
   lastCreatedSummary = signal<string | null>(null);
   lastApiError = signal<string | null>(null);
+  createdCodes = signal<{ zone?: string; aisle?: string; rack?: string; shelf?: string }>({});
   steps: MenuItem[] = [];
 
   readonly zoneTypeOptions = [...ZONE_TYPE_OPTIONS];
@@ -192,7 +194,8 @@ export class WarehouseSetupWizardComponent implements OnInit {
     this.layoutService.createZone(this.warehouse.id, body).subscribe({
       next: (res) => {
         this.ctx.update((c) => ({ ...c, zoneId: res.zoneId }));
-        this.lastCreatedSummary.set(this.translate.instant('SETTINGS.ZONE_CREATED_DETAIL', { id: res.zoneId }));
+        this.createdCodes.update(c => ({ ...c, zone: body.code }));
+        this.lastCreatedSummary.set(this.translate.instant('SETTINGS.ZONE_CREATED_DETAIL', { name: body.name }));
         this.toastSuccess('SETTINGS.ZONE_CREATED');
         this.activeStep.set(1);
         this.saving.set(false);
@@ -224,7 +227,8 @@ export class WarehouseSetupWizardComponent implements OnInit {
     this.layoutService.createAisle(warehouseId, zoneId!, aisleBody).subscribe({
       next: (res) => {
         this.ctx.update((c) => ({ ...c, aisleId: res.aisleId }));
-        this.lastCreatedSummary.set(this.translate.instant('SETTINGS.AISLE_CREATED_DETAIL', { id: res.aisleId }));
+        this.createdCodes.update(c => ({ ...c, aisle: aisleBody.code }));
+        this.lastCreatedSummary.set(this.translate.instant('SETTINGS.AISLE_CREATED_DETAIL', { code: aisleBody.code }));
         this.toastSuccess('SETTINGS.AISLE_CREATED');
         this.activeStep.set(2);
         this.saving.set(false);
@@ -245,7 +249,9 @@ export class WarehouseSetupWizardComponent implements OnInit {
       .subscribe({
         next: (res) => {
           this.ctx.update((c) => ({ ...c, rackId: res.rackId }));
-          this.lastCreatedSummary.set(this.translate.instant('SETTINGS.RACK_CREATED_DETAIL', { id: res.rackId }));
+          const code = this.rackForm.getRawValue().code!.trim();
+          this.createdCodes.update(c => ({ ...c, rack: code }));
+          this.lastCreatedSummary.set(this.translate.instant('SETTINGS.RACK_CREATED_DETAIL', { code }));
           this.toastSuccess('SETTINGS.RACK_CREATED');
           this.activeStep.set(3);
           this.saving.set(false);
@@ -267,8 +273,10 @@ export class WarehouseSetupWizardComponent implements OnInit {
       .subscribe({
         next: (res) => {
           this.ctx.update((c) => ({ ...c, shelfId: res.shelfId }));
+          const code = this.shelfForm.getRawValue().code!.trim();
+          this.createdCodes.update(c => ({ ...c, shelf: code }));
           this.lastCreatedSummary.set(
-            this.translate.instant('SETTINGS.SETUP_COMPLETE_DETAIL', { id: res.shelfId })
+            this.translate.instant('SETTINGS.SETUP_COMPLETE_DETAIL', { code })
           );
           this.toastSuccess('SETTINGS.SETUP_COMPLETE');
           this.saving.set(false);

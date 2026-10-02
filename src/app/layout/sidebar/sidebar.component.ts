@@ -1,7 +1,7 @@
 import { Component, signal, inject, OnInit } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { PanelMenuModule } from 'primeng/panelmenu';
 import { TooltipModule } from 'primeng/tooltip';
 import { LayoutService } from '../../core/services/layout.service';
@@ -24,6 +24,9 @@ interface NavItem {
 })
 export class SidebarComponent implements OnInit {
   private layout = inject(LayoutService);
+  private translate = inject(TranslateService);
+  isRTL = () => this.translate.currentLang === 'ar';
+  closeMobileMenu(): void { this.layout.closeMobileMenu(); }
 
   isCollapsed = this.layout.sidebarCollapsed;
   mobileMenuOpen = this.layout.mobileMenuOpen;

@@ -28,7 +28,9 @@ export const routes: Routes = [
     path: '',
     component: AppLayoutComponent,
     canActivate: [authGuard],
+    canActivateChild: [authGuard],
     children: [
+      { path: 'profile', loadComponent: () => import('./features/auth/profile/profile.component').then(m => m.ProfileComponent) },
       {
         path: 'dashboard',
         loadComponent: () =>
@@ -43,7 +45,7 @@ export const routes: Routes = [
             (m) => m.inventoryRoutes,
           ),
         canActivate: [roleGuard],
-        data: { roles: ['admin', 'manager', 'supervisor', 'operator'] },
+        data: { roles: ['admin', 'manager'] },
       },
       {
         path: 'receiving',
@@ -52,14 +54,14 @@ export const routes: Routes = [
             (m) => m.receivingRoutes,
           ),
         canActivate: [roleGuard],
-        data: { roles: ['admin', 'manager', 'receiving_clerk', 'supervisor'] },
+        data: { roles: ['admin', 'manager', 'receiving_clerk'] },
       },
       {
         path: 'orders',
         loadChildren: () =>
           import('./features/orders/orders.routes').then((m) => m.ordersRoutes),
         canActivate: [roleGuard],
-        data: { roles: ['admin', 'manager', 'supervisor', 'picker'] },
+        data: { roles: ['admin', 'manager', 'picker'] },
       },
       {
         path: 'shipping',
@@ -68,7 +70,7 @@ export const routes: Routes = [
             (m) => m.shippingRoutes,
           ),
         canActivate: [roleGuard],
-        data: { roles: ['admin', 'manager', 'shipping_clerk', 'supervisor'] },
+        data: { roles: ['admin', 'manager', 'shipping_clerk'] },
       },
       {
         path: 'returns',
@@ -77,7 +79,7 @@ export const routes: Routes = [
             (m) => m.returnsRoutes,
           ),
         canActivate: [roleGuard],
-        data: { roles: ['admin', 'manager', 'supervisor'] },
+        data: { roles: ['admin', 'manager'] },
       },
       {
         path: 'reports',
@@ -86,14 +88,14 @@ export const routes: Routes = [
             (m) => m.reportsRoutes,
           ),
         canActivate: [roleGuard],
-        data: { roles: ['admin', 'manager', 'supervisor', 'analyst'] },
+        data: { roles: ['admin', 'manager', 'analyst'] },
       },
       {
         path: 'labor',
         loadChildren: () =>
           import('./features/labor/labor.routes').then((m) => m.laborRoutes),
         canActivate: [roleGuard],
-        data: { roles: ['admin', 'manager', 'supervisor'] },
+        data: { roles: ['admin', 'manager'] },
       },
       {
         path: 'settings',

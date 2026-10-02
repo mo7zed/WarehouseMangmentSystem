@@ -1,12 +1,14 @@
-import { HttpContext, HttpInterceptorFn } from '@angular/common/http';
+import { HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { MessageService } from 'primeng/api';
 import { catchError, switchMap, throwError } from 'rxjs';
 import { AuthService } from '../auth/auth.service';
 import { getApiErrorMessage } from '../utils/api-error.util';
-import { SKIP_REFRESH } from './auth-http-context';
+import { SKIP_AUTH, SKIP_REFRESH } from './auth-http-context';
+import { environment } from '../../../environments/environment';
 
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
+  if (!req.url.startsWith(environment.apiUrl + '/')) return next(req);
   const messageService = inject(MessageService);
   const authService = inject(AuthService);
 
@@ -16,25 +18,29 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
 
       switch (status) {
         case 401:
+          if (req.context.get(SKIP_AUTH)) return throwError(() => error);
           if (req.context.get(SKIP_REFRESH)) {
             authService.clearSession();
             return throwError(() => error);
           }
 
           return authService.refreshAccessToken().pipe(
+            catchError(refreshError => {
+              authService.clearSession();
+              return throwError(() => refreshError);
+            }),
             switchMap(() => {
               const token = authService.getToken();
-              const retryContext = new HttpContext().set(SKIP_REFRESH, true);
+              const retryContext = req.context.set(SKIP_REFRESH, true);
               const retryReq = req.clone({
                 context: retryContext,
                 setHeaders: token ? { Authorization: `Bearer ${token}` } : {},
               });
 
-              return next(retryReq);
-            }),
-            catchError(refreshError => {
-              authService.clearSession();
-              return throwError(() => refreshError);
+              return next(retryReq).pipe(catchError(retryError => {
+                if (retryError.status === 401) authService.clearSession();
+                return throwError(() => retryError);
+              }));
             }),
           );
 

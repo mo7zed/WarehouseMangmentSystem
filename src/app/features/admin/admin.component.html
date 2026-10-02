@@ -9,13 +9,13 @@
             pButton
             icon="pi pi-refresh"
             class="p-button-outlined p-button-sm"
-            label="Refresh"
+            [label]="'UI.REFRESH' | translate"
             [loading]="usersLoading()"
             (click)="loadUsers()"></button>
           <button
             pButton
             icon="pi pi-plus"
-            label="Add User"
+            [label]="'UI.ADD_USER' | translate"
             class="p-button-sm"
             [disabled]="!canManageUsers()"
             (click)="openUserDialog()"></button>
@@ -34,31 +34,31 @@
             [rows]="10">
             <ng-template pTemplate="header">
               <tr>
-                <th>Name</th>
-                <th>Username</th>
-                <th>Email</th>
-                <th>Roles</th>
-                <th>Status</th>
-                <th>Last Login</th>
+                <th>{{ 'UI.NAME' | translate }}</th>
+                <th>{{ 'UI.USERNAME' | translate }}</th>
+                <th>{{ 'UI.EMAIL' | translate }}</th>
+                <th>{{ 'UI.ROLES' | translate }}</th>
+                <th>{{ 'UI.STATUS' | translate }}</th>
+                <th>{{ 'UI.LAST_LOGIN' | translate }}</th>
                 <th>{{ 'COMMON.ACTIONS' | translate }}</th>
               </tr>
             </ng-template>
             <ng-template pTemplate="body" let-user>
               <tr>
                 <td>
-                  <span class="p-column-title">Name</span>
+                  <span class="p-column-title">{{ 'UI.NAME' | translate }}</span>
                   <span class="user-name">{{ user.name }}</span>
                 </td>
                 <td>
-                  <span class="p-column-title">Username</span>
+                  <span class="p-column-title">{{ 'UI.USERNAME' | translate }}</span>
                   {{ user.username || '-' }}
                 </td>
                 <td>
-                  <span class="p-column-title">Email</span>
+                  <span class="p-column-title">{{ 'UI.EMAIL' | translate }}</span>
                   {{ user.email }}
                 </td>
                 <td>
-                  <span class="p-column-title">Roles</span>
+                  <span class="p-column-title">{{ 'UI.ROLES' | translate }}</span>
                   <div class="role-list">
                     @if (user.roles.length) {
                       @for (role of user.roles; track role.id || role.roleId) {
@@ -79,11 +79,11 @@
                   </div>
                 </td>
                 <td>
-                  <span class="p-column-title">Status</span>
+                  <span class="p-column-title">{{ 'UI.STATUS' | translate }}</span>
                   <p-tag [value]="user.status | titlecase" [severity]="getStatusSeverity(user.status)"></p-tag>
                 </td>
                 <td>
-                  <span class="p-column-title">Last Login</span>
+                  <span class="p-column-title">{{ 'UI.LAST_LOGIN' | translate }}</span>
                   <span class="muted-text">{{ user.lastLogin ? (user.lastLogin | date:'MMM d, HH:mm') : '-' }}</span>
                 </td>
                 <td>
@@ -93,7 +93,7 @@
                       pButton
                       icon="pi pi-shield"
                       class="p-button-text p-button-sm"
-                      pTooltip="Manage access"
+                      [pTooltip]="'UI.MANAGE_ACCESS' | translate" [attr.aria-label]="'UI.MANAGE_ACCESS' | translate"
                       [disabled]="!canManageRoles()"
                       (click)="openRoleDialog(user)"></button>
                     @if (user.status === 'locked') {
@@ -131,7 +131,7 @@
             </ng-template>
             <ng-template pTemplate="emptymessage">
               <tr>
-                <td colspan="7" class="text-center p-4">No users found.</td>
+                <td colspan="7" class="text-center p-4">{{ 'UI.NO_USERS_FOUND' | translate }}</td>
               </tr>
             </ng-template>
           </p-table>
@@ -140,14 +140,14 @@
         <p-tabPanel [header]="'ADMIN.ROLES' | translate">
           <p-table [value]="roles()" [loading]="rolesLoading()" styleClass="p-datatable-sm" responsiveLayout="stack" breakpoint="960px">
             <ng-template pTemplate="header">
-              <tr><th>Role</th><th>Description</th><th>Permissions</th><th>Users</th></tr>
+              <tr><th>{{ 'UI.ROLE' | translate }}</th><th>{{ 'UI.DESCRIPTION' | translate }}</th><th>{{ 'UI.PERMISSIONS' | translate }}</th><th>{{ 'UI.USERS' | translate }}</th></tr>
             </ng-template>
             <ng-template pTemplate="body" let-role>
               <tr>
-                <td><span class="p-column-title">Role</span><span class="user-name">{{ role.name }}</span></td>
-                <td><span class="p-column-title">Description</span><span class="muted-text">{{ role.description }}</span></td>
-                <td><span class="p-column-title">Permissions</span><span class="permissions-text">{{ role.permissions.join(', ') || '-' }}</span></td>
-                <td><span class="p-column-title">Users</span><p-tag [value]="getRoleUserCount(role) + ' users'" severity="info"></p-tag></td>
+                <td><span class="p-column-title">{{ 'UI.ROLE' | translate }}</span><span class="user-name">{{ role.name }}</span></td>
+                <td><span class="p-column-title">{{ 'UI.DESCRIPTION' | translate }}</span><span class="muted-text">{{ role.description }}</span></td>
+                <td><span class="p-column-title">{{ 'UI.PERMISSIONS' | translate }}</span><span class="permissions-text">{{ role.permissions.join(', ') || '-' }}</span></td>
+                <td><span class="p-column-title">{{ 'UI.USERS' | translate }}</span><p-tag [value]="getRoleUserCount(role) + ' users'" severity="info"></p-tag></td>
               </tr>
             </ng-template>
           </p-table>
@@ -157,9 +157,9 @@
           <div class="filters-bar">
             <span class="p-input-icon-left search-field">
               <i class="pi pi-search"></i>
-              <input pInputText [(ngModel)]="auditSearch" (input)="onAuditSearch()" placeholder="Search logs..." />
+              <input pInputText [(ngModel)]="auditSearch" (input)="onAuditSearch()" [placeholder]="'UI.SEARCH_LOGS' | translate" />
             </span>
-            <button pButton icon="pi pi-refresh" class="p-button-text p-button-sm" (click)="reloadAuditLogs()" [loading]="auditLoading()" pTooltip="Refresh" tooltipPosition="top"></button>
+            <button pButton icon="pi pi-refresh" class="p-button-text p-button-sm" (click)="reloadAuditLogs()" [loading]="auditLoading()" [pTooltip]="'UI.REFRESH' | translate" [attr.aria-label]="'UI.REFRESH' | translate" tooltipPosition="top"></button>
           </div>
           <p-table
             [value]="auditLogs()"
@@ -173,7 +173,7 @@
             styleClass="p-datatable-sm"
             id="audit-logs-table">
             <ng-template pTemplate="header">
-              <tr><th>Timestamp</th><th>User</th><th>Action</th><th>Module</th><th>Details</th><th>IP</th></tr>
+              <tr><th>{{ 'UI.TIMESTAMP' | translate }}</th><th>{{ 'UI.USER' | translate }}</th><th>{{ 'UI.ACTION' | translate }}</th><th>{{ 'UI.MODULE' | translate }}</th><th>{{ 'UI.DETAILS' | translate }}</th><th>{{ 'UI.IP' | translate }}</th></tr>
             </ng-template>
             <ng-template pTemplate="body" let-log>
               <tr>
@@ -186,21 +186,22 @@
               </tr>
             </ng-template>
             <ng-template pTemplate="emptymessage">
-              <tr><td colspan="6" class="text-center p-4">No audit logs found.</td></tr>
+              <tr><td colspan="6" class="text-center p-4">{{ 'UI.NO_AUDIT_LOGS_FOUND' | translate }}</td></tr>
             </ng-template>
           </p-table>
         </p-tabPanel>
 
         <p-tabPanel [header]="'ADMIN.HEALTH' | translate">
           <div *ngIf="health()" class="health-stack">
+            <p>{{ 'API_FIXES.CONNECTIVITY_NOTE' | translate }} {{ health()!.lastChecked | date:'medium' }}</p>
             <div class="kpi-grid">
-              <div class="kpi-card" [class.success]="health()!.apiStatus === 'healthy'" [class.danger]="health()!.apiStatus !== 'healthy'">
-                <div class="kpi-value">{{ health()!.apiStatus | uppercase }}</div>
-                <div class="kpi-label">API Status</div>
+              <div class="kpi-card" [class.success]="health()!.apiStatus === 'reachable'" [class.danger]="health()!.apiStatus !== 'reachable'">
+                <div class="kpi-value">{{ (health()!.apiStatus === 'reachable' ? 'API_FIXES.CONNECTED' : 'API_FIXES.UNREACHABLE') | translate }}</div>
+                <div class="kpi-label">{{ 'API_FIXES.CONNECTIVITY' | translate }}</div>
               </div>
               <div class="kpi-card info">
-                <div class="kpi-value">{{ health()!.uptime }}</div>
-                <div class="kpi-label">Uptime</div>
+                <div class="kpi-value">{{ health()!.latencyMs == null ? '—' : health()!.latencyMs + ' ms' }}</div>
+                <div class="kpi-label">{{ 'API_FIXES.RESPONSE_TIME' | translate }}</div>
               </div>
             </div>
           </div>
@@ -212,35 +213,35 @@
         [modal]="true"
         [draggable]="false"
         [style]="{width:'min(560px, 96vw)'}"
-        header="Add User">
+        [header]="'UI.ADD_USER' | translate">
         <div class="dialog-form">
           <div class="form-row">
             <div class="form-field">
-              <label>Username</label>
+              <label>{{ 'UI.USERNAME' | translate }}</label>
               <input pInputText [(ngModel)]="userForm.username" autocomplete="username" />
             </div>
             <div class="form-field">
-              <label>Full Name</label>
+              <label>{{ 'UI.FULL_NAME' | translate }}</label>
               <input pInputText [(ngModel)]="userForm.fullName" />
             </div>
           </div>
           <div class="form-field">
-            <label>Email</label>
+            <label>{{ 'UI.EMAIL' | translate }}</label>
             <input pInputText type="email" [(ngModel)]="userForm.email" autocomplete="email" />
           </div>
           <div class="form-field">
-            <label>Password</label>
+            <label>{{ 'UI.PASSWORD' | translate }}</label>
             <input pInputText type="password" [(ngModel)]="userForm.password" autocomplete="new-password" />
           </div>
           <div class="form-row">
             <div class="form-field">
-              <label>Initial Role</label>
+              <label>{{ 'UI.INITIAL_ROLE' | translate }}</label>
               <p-dropdown
-                [options]="roleOptions()"
+                [options]="roleOptions() | uiOptions"
                 [(ngModel)]="userForm.initialRoleId"
                 optionLabel="label"
                 optionValue="value"
-                placeholder="Select role"
+                [placeholder]="'UI.SELECT_ROLE' | translate"
                 styleClass="w-full"
                 appendTo="body"></p-dropdown>
               @if (userForm.initialRoleId) {
@@ -257,26 +258,26 @@
               }
             </div>
             <div class="form-field">
-              <label>Warehouse Scope</label>
+              <label>{{ 'UI.WAREHOUSE_SCOPE' | translate }}</label>
               <p-dropdown
                 [options]="warehouseOptions()"
                 [(ngModel)]="userForm.warehouseScope"
                 optionLabel="label"
                 optionValue="value"
-                placeholder="Select warehouse"
+                [placeholder]="'UI.SELECT_WAREHOUSE' | translate"
                 styleClass="w-full"
                 appendTo="body"></p-dropdown>
             </div>
           </div>
           <div class="form-field">
-            <label>Language</label>
-            <input pInputText [(ngModel)]="userForm.language" placeholder="English" />
+            <label>{{ 'UI.LANGUAGE' | translate }}</label>
+            <input pInputText [(ngModel)]="userForm.language" [placeholder]="'UI.ENGLISH' | translate" />
           </div>
         </div>
         <ng-template pTemplate="footer">
           <div class="wms-dialog-footer">
-            <button pButton label="Cancel" class="p-button-text" (click)="showUserDialog = false"></button>
-            <button pButton label="Create User" icon="pi pi-check" [loading]="saving()" [disabled]="!canCreateUser() || !canManageUsers()" (click)="createUser()"></button>
+            <button pButton [label]="'UI.CANCEL' | translate" class="p-button-text" (click)="showUserDialog = false"></button>
+            <button pButton [label]="'UI.CREATE_USER' | translate" icon="pi pi-check" [loading]="saving()" [disabled]="!canCreateUser() || !canManageUsers()" (click)="createUser()"></button>
           </div>
         </ng-template>
       </p-dialog>
@@ -286,7 +287,7 @@
         [modal]="true"
         [draggable]="false"
         [style]="{width:'min(680px, 96vw)'}"
-        header="Manage User Access">
+        [header]="'UI.MANAGE_USER_ACCESS' | translate">
         <div class="dialog-form">
           @if (selectedUser) {
             <div class="access-user-summary">
@@ -337,16 +338,16 @@
           }
 
           <div class="access-section">
-            <div class="preview-title">Assign another role</div>
+            <div class="preview-title">{{ 'UI.ASSIGN_ANOTHER_ROLE' | translate }}</div>
           </div>
           <div class="form-field">
-            <label>Role</label>
+            <label>{{ 'UI.ROLE' | translate }}</label>
             <p-dropdown
-              [options]="roleOptions()"
+              [options]="roleOptions() | uiOptions"
               [(ngModel)]="roleForm.roleId"
               optionLabel="label"
               optionValue="value"
-              placeholder="Select role"
+              [placeholder]="'UI.SELECT_ROLE' | translate"
               styleClass="w-full"
               appendTo="body"></p-dropdown>
             @if (roleForm.roleId) {
@@ -363,21 +364,21 @@
             }
           </div>
           <div class="form-field">
-            <label>Warehouse Scope</label>
+            <label>{{ 'UI.WAREHOUSE_SCOPE' | translate }}</label>
             <p-dropdown
               [options]="warehouseOptions()"
               [(ngModel)]="roleForm.warehouseScope"
               optionLabel="label"
               optionValue="value"
-              placeholder="Select warehouse"
+              [placeholder]="'UI.SELECT_WAREHOUSE' | translate"
               styleClass="w-full"
               appendTo="body"></p-dropdown>
           </div>
         </div>
         <ng-template pTemplate="footer">
           <div class="wms-dialog-footer">
-            <button pButton label="Cancel" class="p-button-text" (click)="showRoleDialog = false"></button>
-            <button pButton label="Assign" icon="pi pi-check" [loading]="saving()" [disabled]="!roleForm.userId || !roleForm.roleId || !roleForm.warehouseScope || !canManageRoles()" (click)="assignRole()"></button>
+            <button pButton [label]="'UI.CANCEL' | translate" class="p-button-text" (click)="showRoleDialog = false"></button>
+            <button pButton [label]="'UI.ASSIGN' | translate" icon="pi pi-check" [loading]="saving()" [disabled]="!roleForm.userId || !roleForm.roleId || !roleForm.warehouseScope || !canManageRoles()" (click)="assignRole()"></button>
           </div>
         </ng-template>
       </p-dialog>
@@ -387,17 +388,17 @@
         [modal]="true"
         [draggable]="false"
         [style]="{width:'min(440px, 96vw)'}"
-        header="Lock User">
+        [header]="'UI.LOCK_USER' | translate">
         <div class="dialog-form">
           <div class="form-field">
-            <label>Reason</label>
-            <input pInputText [(ngModel)]="lockReason" placeholder="Reason" />
+            <label>{{ 'UI.REASON' | translate }}</label>
+            <input pInputText [(ngModel)]="lockReason" [placeholder]="'UI.REASON' | translate" />
           </div>
         </div>
         <ng-template pTemplate="footer">
           <div class="wms-dialog-footer">
-            <button pButton label="Cancel" class="p-button-text" (click)="showLockDialog = false"></button>
-            <button pButton label="Lock" icon="pi pi-lock" class="p-button-danger" [loading]="saving()" [disabled]="!selectedUser || !lockReason.trim()" (click)="lockUser()"></button>
+            <button pButton [label]="'UI.CANCEL' | translate" class="p-button-text" (click)="showLockDialog = false"></button>
+            <button pButton [label]="'UI.LOCK' | translate" icon="pi pi-lock" class="p-button-danger" [loading]="saving()" [disabled]="!selectedUser || !lockReason.trim()" (click)="lockUser()"></button>
           </div>
         </ng-template>
       </p-dialog>

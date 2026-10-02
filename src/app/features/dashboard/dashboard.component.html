@@ -9,9 +9,8 @@
         <div style="display:flex; align-items:center; gap:0.75rem;">
           <span class="live-badge">
             <span class="live-dot"></span>
-            Live
-          </span>
-          <button pButton icon="pi pi-refresh" class="p-button-outlined p-button-sm" (click)="refresh()" id="refresh-dashboard-btn" label="Refresh"></button>
+            {{ 'UI.LIVE' | translate }}</span>
+          <button pButton icon="pi pi-refresh" class="p-button-outlined p-button-sm" (click)="refresh()" id="refresh-dashboard-btn" [label]="'UI.REFRESH' | translate"></button>
         </div>
       </div>
 
@@ -76,7 +75,7 @@
       </div>
 
       <!-- Charts Row -->
-      <div class="grid" style="gap:1rem; display:grid; grid-template-columns: 2fr 1fr; margin-bottom:1.5rem;">
+      <div class="dashboard-charts">
 
         <!-- Inbound vs Outbound -->
         <div class="chart-card">
@@ -129,19 +128,25 @@
       </div>
 
       <!-- Bottom Row -->
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+      <div class="dashboard-bottom">
 
         <!-- Alerts -->
         <div class="section-card">
           <div class="section-card-header">
             <h3>{{ 'DASHBOARD.ALERTS' | translate }}</h3>
-            <span class="status-badge danger">{{ unreadAlertCount() }} unread</span>
+            <span class="status-badge danger">{{ unreadAlertCount() }} {{ 'UI.UNREAD' | translate }}</span>
           </div>
           <div class="alert-list">
             <div
               *ngFor="let alert of alerts()"
               class="alert-item"
               [class.unread]="!alert.read"
+              [class.alert-item--actionable]="!alert.read"
+              (click)="markAlertRead(alert)"
+              (keydown.enter)="markAlertRead(alert)"
+              (keydown.space)="markAlertRead(alert)"
+              [attr.role]="!alert.read ? 'button' : null"
+              [attr.tabindex]="!alert.read ? 0 : null"
             >
               <div class="alert-icon" [class]="alert.type">
                 <i class="pi"
@@ -174,9 +179,9 @@
                 <p class="activity-action">{{ log.action }}</p>
                 <div class="activity-meta">
                   <span class="activity-user">{{ log.user }}</span>
-                  <span class="activity-sep">Â·</span>
+                  <span class="activity-sep">·</span>
                   <span class="status-badge info" style="padding:0.1rem 0.4rem; font-size:0.65rem;">{{ log.module }}</span>
-                  <span class="activity-sep">Â·</span>
+                  <span class="activity-sep">·</span>
                   <span class="activity-time">{{ log.timestamp | date:'HH:mm' }}</span>
                 </div>
               </div>

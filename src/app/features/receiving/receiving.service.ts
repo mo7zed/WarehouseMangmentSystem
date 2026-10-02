@@ -1,27 +1,22 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable, of } from 'rxjs';
-import { delay, map } from 'rxjs/operators';
-import { ASN, PutawayTask } from '../../core/models/order.model';
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
+import { CreatedResource } from '../../core/models/api.model';
+import { ASN } from '../../core/models/order.model';
 import { BaseApiService } from '../../core/services/base-api.service';
 import { ApiAsn, CreateAsnDto } from './asn.model';
+import { CreateInboundShipmentDto, InboundShipment, InboundShipmentDiscrepancy, InboundShipmentInspection } from './inbound-shipment.model';
 
 @Injectable({ providedIn: 'root' })
 export class ReceivingService {
   private api = inject(BaseApiService);
 
-  private mockPutawayTasks: PutawayTask[] = Array.from({ length: 8 }, (_, i) => ({
-    id: `put-${i + 1}`,
-    asnId: `asn-${(i % 4) + 1}`,
-    itemId: `item-${i + 1}`,
-    sku: `SKU-${String(i + 1).padStart(4, '0')}`,
-    itemName: ['Laptop Stand Pro', 'USB-C Hub', 'Wireless Keyboard', 'Monitor Riser'][i % 4],
-    quantity: Math.floor(Math.random() * 50) + 10,
-    uom: 'PCS',
-    suggestedBin: `A-${String(i + 1).padStart(2, '0')}-01`,
-    confirmedBin: undefined,
-    status: (i % 3 === 0 ? 'completed' : 'pending') as 'pending' | 'completed',
-    assignedTo: i % 2 === 0 ? 'op-1' : 'op-2',
-  }));
+  getASNs(warehouseId: string): Observable<ASN[]> {
+    // Swagger's all-ASNs endpoint has no warehouse query parameter.
+    return this.api.get<ApiAsn[]>('asns').pipe(map(list =>
+      list.filter(asn => asn.warehouseId === warehouseId).map(asn => this.mapApiAsn(asn))));
+  }
+
 
   getPendingASNs(warehouseId: string): Observable<ASN[]> {
     return this.api
@@ -29,31 +24,42 @@ export class ReceivingService {
       .pipe(map(list => list.map(asn => this.mapApiAsn(asn))));
   }
 
-  createASN(body: CreateAsnDto): Observable<ASN> {
-    return this.api.post<ApiAsn>('asns', body).pipe(map(asn => this.mapApiAsn(asn)));
+  createASN(body: CreateAsnDto): Observable<CreatedResource> {
+    return this.api.post<CreatedResource>('asns', body);
   }
 
-  receiveASN(id: string, _data: unknown): Observable<ASN> {
-    return of({ id } as ASN).pipe(delay(400));
+  getInboundShipments(warehouseId: string): Observable<InboundShipment[]> {
+    return this.api.get<InboundShipment[]>(`inbound-shipments/by-warehouse/${warehouseId}`);
   }
 
-  getPutawayTasks(): Observable<PutawayTask[]> {
-    return of(this.mockPutawayTasks).pipe(delay(200));
+  getInboundShipment(id: string): Observable<InboundShipment> {
+    return this.api.get<InboundShipment>(`inbound-shipments/${id}`);
   }
 
-  completePutaway(id: string, binCode: string): Observable<{ success: boolean }> {
-    const task = this.mockPutawayTasks.find(t => t.id === id);
-    if (task) {
-      task.status = 'completed';
-      task.confirmedBin = binCode;
-    }
-    return of({ success: true }).pipe(delay(300));
+  getPendingInboundShipments(warehouseId: string): Observable<InboundShipment[]> {
+    return this.api.get<InboundShipment[]>('inbound-shipments/pending', { warehouseId });
+  }
+
+  createInboundShipment(body: CreateInboundShipmentDto): Observable<CreatedResource> {
+    return this.api.post<CreatedResource>('inbound-shipments', body);
+  }
+
+  addInboundShipmentDiscrepancy(id: string, body: Omit<InboundShipmentDiscrepancy, 'id' | 'reportedAt'>): Observable<unknown> {
+    return this.api.post<unknown>(`inbound-shipments/${id}/discrepancies`, body);
+  }
+
+  addInboundShipmentInspection(id: string, body: Omit<InboundShipmentInspection, 'id' | 'inspectedAt'>): Observable<unknown> {
+    return this.api.post<unknown>(`inbound-shipments/${id}/inspections`, body);
+  }
+
+  completeInboundShipmentReceiving(id: string): Observable<void> {
+    return this.api.post<void>(`inbound-shipments/${id}/complete-receiving`, {});
   }
 
   private mapApiAsn(asn: ApiAsn): ASN {
     return {
       id: asn.id,
-      asnNumber: asn.id.slice(0, 8).toUpperCase(),
+      asnNumber: `${asn.id.slice(0, 8)}…${asn.id.slice(-4)}`.toUpperCase(),
       supplierId: asn.supplierId,
       supplierName: asn.supplierName,
       status: this.normalizeStatus(asn.status),
@@ -81,7 +87,7 @@ export class ReceivingService {
   }
 
   private normalizeStatus(status: string): ASN['status'] {
-    const normalized = status.toLowerCase().replace(/\s+/g, '_');
+    const normalized = status.replace(/([a-z])([A-Z])/g, '$1_$2').toLowerCase().replace(/\s+/g, '_');
     const map: Record<string, ASN['status']> = {
       confirmed: 'expected',
       expected: 'expected',
@@ -89,6 +95,7 @@ export class ReceivingService {
       partial: 'partially_received',
       complete: 'complete',
       completed: 'complete',
+      fully_received: 'complete',
       cancelled: 'cancelled',
       canceled: 'cancelled',
     };

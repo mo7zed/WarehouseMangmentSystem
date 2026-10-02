@@ -1,23 +1,14 @@
-<aside class="wms-sidebar" [class.collapsed]="isCollapsed()" [class.mobile-open]="mobileMenuOpen()">
+<aside class="wms-sidebar" [class.collapsed]="isCollapsed() && !mobileMenuOpen()" [class.mobile-open]="mobileMenuOpen()">
       <!-- Logo -->
       <div class="sidebar-logo">
-        <div class="logo-icon">
-          <i class="pi pi-box"></i>
-        </div>
-        <div class="logo-text" *ngIf="!isCollapsed()">
-          <span class="logo-title">TACHYON</span>
-          <span class="logo-sub">WMS</span>
-        </div>
-      </div>
-
-      <!-- Toggle Button -->
-      <button class="sidebar-toggle" (click)="toggleSidebar()" id="sidebar-toggle-btn">
-        <i class="pi" [class.pi-chevron-left]="!isCollapsed()" [class.pi-chevron-right]="isCollapsed()"></i>
-      </button>
-
-      <!-- Navigation -->
+        <img class="brand-wordmark" src="assets/brand/tachyon-logo.png" alt="Tachyon" width="245" height="59" />
+<img class="brand-mark" src="assets/brand/tachyon-mark.png" alt="Tachyon" width="36" height="36" />
+<button class="sidebar-toggle" (click)="toggleSidebar()" [attr.aria-label]="'APP.TOGGLE_NAV' | translate" id="sidebar-toggle-btn">
+<i class="pi" [class.pi-chevron-left]="(!isCollapsed() || mobileMenuOpen())" [class.pi-chevron-right]="isCollapsed()"></i>
+</button></div>
+<!-- Navigation -->
       <nav class="sidebar-nav">
-        <div class="nav-section" *ngIf="!isCollapsed()">
+        <div class="nav-section" *ngIf="(!isCollapsed() || mobileMenuOpen())">
           <span class="nav-section-label">{{ 'APP.MAIN_MENU' | translate }}</span>
         </div>
 
@@ -25,23 +16,23 @@
           <li *ngFor="let item of navItems">
             <a
               class="nav-item"
-              [routerLink]="item.route"
+              [routerLink]="item.route" (click)="closeMobileMenu()"
               routerLinkActive="active"
-              [pTooltip]="isCollapsed() ? item.label : ''"
-              tooltipPosition="right"
-              [id]="'nav-' + item.id"
+              [pTooltip]="isCollapsed() ? (item.label | translate) : ''"
+              [tooltipPosition]="isRTL() ? 'left' : 'right'"
+              [id]="'nav-' + item.id" [attr.aria-label]="item.label | translate"
             >
               <i class="nav-icon pi" [class]="item.icon"></i>
-              <span class="nav-label" *ngIf="!isCollapsed()">{{ item.label | translate }}</span>
-              <span class="nav-badge" *ngIf="item.badge && !isCollapsed()">{{ item.badge }}</span>
+              <span class="nav-label" *ngIf="(!isCollapsed() || mobileMenuOpen())">{{ item.label | translate }}</span>
+              <span class="nav-badge" *ngIf="item.badge && (!isCollapsed() || mobileMenuOpen())">{{ item.badge }}</span>
             </a>
 
             <!-- Sub items -->
-            <ul class="nav-sub-list" *ngIf="item.children && !isCollapsed()" [class.expanded]="isItemExpanded(item.id)">
+            <ul class="nav-sub-list" *ngIf="item.children && (!isCollapsed() || mobileMenuOpen())" [class.expanded]="isItemExpanded(item.id)">
               <li *ngFor="let child of item.children">
                 <a
                   class="nav-sub-item"
-                  [routerLink]="child.route"
+                  [routerLink]="child.route" (click)="closeMobileMenu()"
                   routerLinkActive="active"
                   [id]="'nav-' + child.id"
                 >
@@ -57,25 +48,25 @@
         <div class="sidebar-footer">
           <a
             class="nav-item"
-            routerLink="/settings"
+            routerLink="/settings" (click)="closeMobileMenu()"
             routerLinkActive="active"
-            [pTooltip]="isCollapsed() ? 'Settings' : ''"
-            tooltipPosition="right"
+            [pTooltip]="isCollapsed() ? ('NAV.SETTINGS' | translate) : ''"
+            [tooltipPosition]="isRTL() ? 'left' : 'right'"
             id="nav-settings"
           >
             <i class="nav-icon pi pi-cog"></i>
-            <span class="nav-label" *ngIf="!isCollapsed()">{{ 'NAV.SETTINGS' | translate }}</span>
+            <span class="nav-label" *ngIf="(!isCollapsed() || mobileMenuOpen())">{{ 'NAV.SETTINGS' | translate }}</span>
           </a>
           <a
             class="nav-item"
-            routerLink="/admin"
+            routerLink="/admin" (click)="closeMobileMenu()"
             routerLinkActive="active"
-            [pTooltip]="isCollapsed() ? 'Admin' : ''"
-            tooltipPosition="right"
+            [pTooltip]="isCollapsed() ? ('NAV.ADMIN' | translate) : ''"
+            [tooltipPosition]="isRTL() ? 'left' : 'right'"
             id="nav-admin"
           >
             <i class="nav-icon pi pi-shield"></i>
-            <span class="nav-label" *ngIf="!isCollapsed()">{{ 'NAV.ADMIN' | translate }}</span>
+            <span class="nav-label" *ngIf="(!isCollapsed() || mobileMenuOpen())">{{ 'NAV.ADMIN' | translate }}</span>
           </a>
         </div>
       </nav>

@@ -2,66 +2,128 @@
   <div class="page-heading">
     <div>
       <h1>{{ 'NAV.LABOR' | translate }}</h1>
-      <p>Manage warehouse work assignments and their execution.</p>
+      <p>{{ 'UI.MANAGE_WAREHOUSE_WORK_ASSIGNMENTS_AND_THEIR_EXECUTION' | translate }}</p>
     </div>
     <div class="heading-actions">
-      <button pButton type="button" label="Balance workload" icon="pi pi-sitemap" class="p-button-outlined" (click)="balanceWorkload()" [disabled]="!warehouseId"></button>
-      <button pButton type="button" label="New assignment" icon="pi pi-plus" (click)="openCreate()"></button>
+      <button pButton type="button" [label]="'UI.BALANCE_WORKLOAD' | translate" icon="pi pi-sitemap" class="p-button-outlined" (click)="balanceWorkload()" [disabled]="!warehouseId"></button>
+      <button pButton type="button" [label]="'UI.NEW_OPERATOR' | translate" icon="pi pi-user-plus" class="p-button-outlined" (click)="openCreateOperator()" [disabled]="!warehouseId"></button>
+      <button pButton type="button" [label]="'UI.NEW_ASSIGNMENT' | translate" icon="pi pi-plus" (click)="openCreate()" [disabled]="!warehouseId"></button>
     </div>
   </div>
 
   <p-tabView styleClass="settings-tabs">
     <p-tabPanel [header]="'LABOR.TASK_ASSIGNMENT' | translate">
       <div class="summary-grid">
-        <p-card><span>Total assignments</span><strong>{{ summary.total }}</strong></p-card>
-        <p-card><span>Pending</span><strong>{{ summary.pending }}</strong></p-card>
-        <p-card><span>Active</span><strong>{{ summary.active }}</strong></p-card>
-        <p-card><span>Completed</span><strong>{{ summary.completed }}</strong></p-card>
+        <p-card><span>{{ 'UI.TOTAL_ASSIGNMENTS' | translate }}</span><strong>{{ summary.total }}</strong></p-card>
+        <p-card><span>{{ 'UI.PENDING' | translate }}</span><strong>{{ summary.pending }}</strong></p-card>
+        <p-card><span>{{ 'UI.ACTIVE' | translate }}</span><strong>{{ summary.active }}</strong></p-card>
+        <p-card><span>{{ 'UI.COMPLETED' | translate }}</span><strong>{{ summary.completed }}</strong></p-card>
       </div>
 
       <p-table [value]="assignments()" [loading]="loading()" responsiveLayout="scroll" styleClass="p-datatable-sm">
         <ng-template pTemplate="header">
           <tr>
-            <th>Task</th><th>Priority</th><th>Status</th><th>Zone</th><th>Operator</th><th>Due by</th><th>Actions</th>
+            <th>{{ 'UI.TASK' | translate }}</th><th>{{ 'UI.PRIORITY' | translate }}</th><th>{{ 'UI.STATUS' | translate }}</th><th>{{ 'UI.ZONE' | translate }}</th><th>{{ 'UI.OPERATOR' | translate }}</th><th>{{ 'UI.DUE_BY' | translate }}</th><th>{{ 'UI.ACTIONS' | translate }}</th>
           </tr>
         </ng-template>
         <ng-template pTemplate="body" let-assignment>
           <tr>
-            <td><strong>{{ assignment.taskType }}</strong><small>{{ assignment.sourceTaskId }}</small></td>
-            <td><p-tag [value]="assignment.priority" [severity]="prioritySeverity(assignment.priority)"></p-tag></td>
-            <td><p-tag [value]="assignment.status" [severity]="statusSeverity(assignment.status)"></p-tag></td>
+            <td><strong>{{ assignment.taskType }}</strong></td>
+            <td><p-tag [value]="assignment.priority | uiLabel" [severity]="prioritySeverity(assignment.priority)"></p-tag></td>
+            <td><p-tag [value]="assignment.status | uiLabel" [severity]="statusSeverity(assignment.status)"></p-tag></td>
             <td>{{ zoneName(assignment.zoneId) }}</td>
             <td>{{ operatorName(assignment.assignedOperatorId) }}</td>
             <td>{{ assignment.dueBy ? (assignment.dueBy | date:'medium') : '—' }}</td>
             <td class="actions">
-              <button *ngIf="assignment.status === 'Assigned'" pButton type="button" label="Accept" class="p-button-text p-button-sm" (click)="runAction(assignment, 'accept')"></button>
-              <button *ngIf="assignment.status === 'Accepted'" pButton type="button" label="Start" class="p-button-text p-button-sm" (click)="runAction(assignment, 'start')"></button>
-              <button *ngIf="assignment.status === 'InProgress'" pButton type="button" label="Complete" class="p-button-text p-button-sm" (click)="runAction(assignment, 'complete')"></button>
-              <button *ngIf="!['Completed', 'Cancelled', 'Failed'].includes(assignment.status)" pButton type="button" icon="pi pi-times" class="p-button-text p-button-danger p-button-sm" aria-label="Cancel assignment" (click)="runAction(assignment, 'cancel')"></button>
+              <button *ngIf="assignment.status === 'Assigned'" pButton type="button" [label]="'UI.ACCEPT' | translate" class="p-button-text p-button-sm" (click)="runAction(assignment, 'accept')"></button>
+              <button *ngIf="assignment.status === 'Accepted'" pButton type="button" [label]="'UI.START' | translate" class="p-button-text p-button-sm" (click)="runAction(assignment, 'start')"></button>
+              <button *ngIf="assignment.status === 'InProgress'" pButton type="button" [label]="'UI.COMPLETE' | translate" class="p-button-text p-button-sm" (click)="runAction(assignment, 'complete')"></button>
+              <button *ngIf="!['Completed', 'Cancelled', 'Failed'].includes(assignment.status)" pButton type="button" icon="pi pi-times" class="p-button-text p-button-danger p-button-sm" [attr.aria-label]="'UI.CANCEL_ASSIGNMENT' | translate" (click)="runAction(assignment, 'cancel')"></button>
             </td>
           </tr>
         </ng-template>
-        <ng-template pTemplate="emptymessage"><tr><td colspan="7" class="empty-state">No work assignments for this warehouse.</td></tr></ng-template>
+        <ng-template pTemplate="emptymessage"><tr><td colspan="7" class="empty-state">{{ 'UI.NO_WORK_ASSIGNMENTS_FOR_THIS_WAREHOUSE' | translate }}</td></tr></ng-template>
       </p-table>
     </p-tabPanel>
-    <p-tabPanel [header]="'LABOR.OPERATOR_PERFORMANCE' | translate"><p>Operator performance will appear here when performance metrics are available.</p></p-tabPanel>
-    <p-tabPanel [header]="'LABOR.WORKLOAD' | translate"><p>Use “Balance workload” to distribute eligible assignments.</p></p-tabPanel>
+    <p-tabPanel [header]="'UI.OPERATORS' | translate">
+      <p-table [value]="operators()" [loading]="operatorsLoading()" responsiveLayout="scroll" styleClass="p-datatable-sm">
+        <ng-template pTemplate="header"><tr><th>{{ 'UI.OPERATOR' | translate }}</th><th>{{ 'UI.STATUS' | translate }}</th><th>{{ 'UI.SHIFT' | translate }}</th><th>{{ 'UI.WORKLOAD' | translate }}</th><th>{{ 'UI.SKILLS' | translate }}</th><th>{{ 'UI.TODAY' | translate }}</th><th></th></tr></ng-template>
+        <ng-template pTemplate="body" let-operator>
+          <tr>
+            <td><strong>{{ operatorName(operator.userId) }}</strong></td>
+            <td><p-tag [value]="operator.status | uiLabel" [severity]="operatorStatusSeverity(operator.status)"></p-tag></td>
+            <td>{{ operator.shift.startTime }}–{{ operator.shift.endTime }}<small>{{ operator.shift.workDays.join(', ') }}</small></td>
+            <td>{{ operator.currentWorkload }} / {{ operator.maxConcurrentTasks }}</td>
+            <td>{{ operator.skills.length }}</td>
+            <td>{{ operator.performanceMetrics.tasksCompletedToday }} completed</td>
+            <td><button pButton type="button" [label]="'UI.MANAGE_PROFILE' | translate" icon="pi pi-cog" class="p-button-outlined p-button-sm manage-profile-button" (click)="openOperator(operator)"></button></td>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="emptymessage"><tr><td colspan="7" class="empty-state">{{ 'UI.NO_OPERATOR_PROFILES_FOR_THIS_WAREHOUSE' | translate }}</td></tr></ng-template>
+      </p-table>
+    </p-tabPanel>
+    <p-tabPanel [header]="'LABOR.WORKLOAD' | translate"><p>{{ 'UI.USE_BALANCE_WORKLOAD_TO_DISTRIBUTE_ELIGIBLE_ASSIGNMENTS' | translate }}</p></p-tabPanel>
     <p-tabPanel [header]="'LABOR.SHIFTS' | translate"><p>Shift overview here</p></p-tabPanel>
   </p-tabView>
 </div>
 
-<p-dialog header="Create work assignment" [(visible)]="showCreateDialog" [modal]="true" [style]="{ width: 'min(40rem, 95vw)' }">
+<p-dialog [header]="'UI.CREATE_WORK_ASSIGNMENT' | translate" [(visible)]="showCreateDialog" [modal]="true" [style]="{ width: 'min(40rem, 95vw)' }">
   <div class="assignment-form">
-    <label>Task type <p-dropdown [options]="taskTypes" [(ngModel)]="newAssignment.taskType"></p-dropdown></label>
-    <label>Priority <p-dropdown [options]="priorities" [(ngModel)]="newAssignment.priority"></p-dropdown></label>
-    <label class="full">Source task ID <input pInputText [(ngModel)]="newAssignment.sourceTaskId" placeholder="Task UUID" /></label>
-    <label>Zone <p-dropdown [options]="zoneOptions()" optionLabel="label" optionValue="value" [(ngModel)]="newAssignment.zoneId" [showClear]="true" placeholder="Select a zone"></p-dropdown></label>
-    <label>Due by <input pInputText type="datetime-local" [(ngModel)]="newAssignment.dueBy" /></label>
-    <label class="full">Required skills <input pInputText [(ngModel)]="newAssignment.requiredSkills" placeholder="Comma-separated, e.g. Forklift, Hazmat" /></label>
-    <label class="full">Notes <input pInputText [(ngModel)]="newAssignment.notes" /></label>
+    <label>{{ 'UI.TASK_TYPE' | translate }}<p-dropdown [options]="taskTypes" [(ngModel)]="newAssignment.taskType"></p-dropdown></label>
+    <label>{{ 'UI.PRIORITY' | translate }}<p-dropdown [options]="priorities" [(ngModel)]="newAssignment.priority"></p-dropdown></label>
+    <label class="full">{{ 'UI.SOURCE_TASK_ID' | translate }}<input pInputText [(ngModel)]="newAssignment.sourceTaskId" [placeholder]="'UI.TASK_UUID' | translate" /></label>
+    <label>{{ 'UI.ZONE' | translate }}<p-dropdown [options]="zoneOptions()" optionLabel="label" optionValue="value" [(ngModel)]="newAssignment.zoneId" [showClear]="true" [placeholder]="'UI.SELECT_A_ZONE' | translate"></p-dropdown></label>
+    <label>{{ 'UI.DUE_BY' | translate }}<input pInputText type="datetime-local" [(ngModel)]="newAssignment.dueBy" /></label>
+    <label class="full">{{ 'UI.REQUIRED_SKILLS' | translate }}<p-multiSelect
+        [options]="skillOptions | uiOptions"
+        [(ngModel)]="newAssignment.requiredSkills"
+        optionLabel="label"
+        optionValue="value"
+        [placeholder]="'UI.SELECT_REQUIRED_SKILLS' | translate"
+        display="chip"
+        appendTo="body"
+        scrollHeight="16rem">
+      </p-multiSelect>
+    </label>
+    <label class="full">{{ 'UI.NOTES' | translate }}<input pInputText [(ngModel)]="newAssignment.notes" /></label>
   </div>
   <ng-template pTemplate="footer">
-    <button pButton type="button" label="Cancel" class="p-button-text" (click)="showCreateDialog.set(false)"></button>
-    <button pButton type="button" label="Create assignment" [loading]="creating()" (click)="createAssignment()"></button>
+    <button pButton type="button" [label]="'UI.CANCEL' | translate" class="p-button-text" (click)="showCreateDialog.set(false)"></button>
+    <button pButton type="button" [label]="'UI.CREATE_ASSIGNMENT' | translate" [loading]="creating()" (click)="createAssignment()"></button>
   </ng-template>
+</p-dialog>
+
+<p-dialog [header]="'UI.CREATE_OPERATOR_PROFILE' | translate" [(visible)]="showCreateOperatorDialog" [modal]="true" [style]="{ width: 'min(40rem, 95vw)' }">
+  <div class="assignment-form">
+    <label class="full">{{ 'UI.USER' | translate }}<select class="p-inputtext" [(ngModel)]="newOperator.userId"><option value="">{{ 'UI.SELECT_A_USER' | translate }}</option><option *ngFor="let user of userOptions()" [value]="user.value">{{ user.label }}</option></select></label>
+    <label>{{ 'UI.SHIFT_START' | translate }}<input pInputText type="time" [(ngModel)]="newOperator.shiftStartTime" /></label>
+    <label>{{ 'UI.SHIFT_END' | translate }}<input pInputText type="time" [(ngModel)]="newOperator.shiftEndTime" /></label>
+    <label>{{ 'UI.MAXIMUM_CONCURRENT_TASKS' | translate }}<input pInputText type="number" min="1" [(ngModel)]="newOperator.maxConcurrentTasks" /></label>
+    <label>{{ 'UI.WORK_DAYS' | translate }}<p-multiSelect [options]="workDays" [(ngModel)]="newOperator.workDays" [placeholder]="'UI.SELECT_WORK_DAYS' | translate" display="chip" appendTo="body"></p-multiSelect></label>
+  </div>
+  <ng-template pTemplate="footer">
+    <button pButton type="button" [label]="'UI.CANCEL' | translate" class="p-button-text" (click)="showCreateOperatorDialog.set(false)"></button>
+    <button pButton type="button" [label]="'UI.CREATE_OPERATOR' | translate" [loading]="creatingOperator()" [disabled]="creatingOperator()" (click)="createOperator()"></button>
+  </ng-template>
+</p-dialog>
+
+<p-dialog [header]="'UI.MANAGE_OPERATOR' | translate" [(visible)]="showOperatorDialog" [modal]="true" [style]="{ width: 'min(48rem, 95vw)' }">
+  <ng-container *ngIf="selectedOperator() as operator">
+    <div class="operator-details">
+      <div><strong>{{ operatorName(operator.userId) }}</strong></div>
+      <label>{{ 'UI.STATUS' | translate }}<p-dropdown [options]="operatorStatuses" [ngModel]="operator.status" (ngModelChange)="updateOperatorStatus($event)" [loading]="updatingOperator()"></p-dropdown></label>
+      <div><span>{{ 'UI.ACCURACY' | translate }}</span><strong>{{ operator.performanceMetrics.pickAccuracyRate }}%</strong></div>
+      <div><span>{{ 'UI.AVERAGE_TASK_DURATION' | translate }}</span><strong>{{ operator.performanceMetrics.averageTaskDurationMinutes }} min</strong></div>
+    </div>
+    <div class="operator-section">
+      <h3>{{ 'UI.SKILLS' | translate }}</h3>
+      <div class="inline-form"><p-dropdown [options]="skillOptions | uiOptions" optionLabel="label" optionValue="value" [(ngModel)]="newSkill.skillType" [placeholder]="'UI.SELECT_SKILL' | translate"></p-dropdown><input pInputText type="datetime-local" [(ngModel)]="newSkill.certifiedDate" [attr.aria-label]="'UI.CERTIFIED_DATE' | translate" /><input pInputText type="datetime-local" [(ngModel)]="newSkill.expiresAt" [attr.aria-label]="'UI.EXPIRY_DATE' | translate" /><button pButton type="button" icon="pi pi-plus" [attr.aria-label]="'UI.ADD_SKILL' | translate" (click)="addOperatorSkill()"></button></div>
+      <div class="chip-list"><span class="removable-chip" *ngFor="let skill of operator.skills"><p-tag [value]="skill.skillType"></p-tag><button pButton type="button" icon="pi pi-times" class="p-button-text p-button-sm" [attr.aria-label]="'UI.REMOVE_SKILL' | translate" (click)="removeOperatorSkill(skill.skillType)"></button></span><span *ngIf="!operator.skills.length">{{ 'UI.NO_SKILLS_ASSIGNED' | translate }}</span></div>
+    </div>
+    <div class="operator-section">
+      <h3>{{ 'UI.AUTHORIZED_ZONES' | translate }}</h3>
+      <div class="inline-form"><p-dropdown [options]="zoneOptions()" optionLabel="label" optionValue="value" [(ngModel)]="newZoneId" [placeholder]="'UI.SELECT_A_ZONE' | translate"></p-dropdown><button pButton type="button" icon="pi pi-plus" [attr.aria-label]="'UI.ADD_ZONE' | translate" (click)="addOperatorZone()"></button></div>
+      <div class="chip-list"><span class="removable-chip" *ngFor="let zoneId of operator.authorizedZoneIds"><p-tag [value]="zoneName(zoneId)"></p-tag><button pButton type="button" icon="pi pi-times" class="p-button-text p-button-sm" [attr.aria-label]="'UI.REMOVE_ZONE' | translate" (click)="removeOperatorZone(zoneId)"></button></span><span *ngIf="!operator.authorizedZoneIds.length">{{ 'UI.NO_ZONES_AUTHORIZED' | translate }}</span></div>
+    </div>
+  </ng-container>
 </p-dialog>

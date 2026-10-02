@@ -3,7 +3,7 @@ import { Routes } from '@angular/router';
 export const inventoryRoutes: Routes = [
   {
     path: '',
-    loadComponent: () => import('./inventory-list/inventory-list.component').then(m => m.InventoryListComponent),
+    redirectTo: 'stock', pathMatch: 'full',
     title: 'Inventory — Tachyon WMS'
   },
   {
@@ -13,8 +13,8 @@ export const inventoryRoutes: Routes = [
   },
   {
     path: 'items',
-    loadComponent: () => import('./inventory-list/inventory-list.component').then(m => m.InventoryListComponent),
-    title: 'Item Master — Tachyon WMS'
+    loadComponent: () => import('./catalog-list/catalog-list.component').then(m => m.CatalogListComponent),
+    title: 'catalog Items — Tachyon WMS'
   },
   {
     path: 'bins',

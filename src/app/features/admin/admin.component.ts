@@ -1,3 +1,4 @@
+import { UiLabelPipe, UiOptionsPipe } from '../../shared/pipes/ui-label.pipe';
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -36,7 +37,7 @@ interface RoleForm {
 @Component({
   selector: 'app-admin',
   standalone: true,
-  imports: [
+  imports: [UiLabelPipe, UiOptionsPipe,
     CommonModule,
     FormsModule,
     TranslateModule,

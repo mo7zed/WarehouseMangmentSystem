@@ -9,6 +9,15 @@ export type WorkTaskType =
 
 export type LaborTaskPriority = 'Critical' | 'High' | 'Normal' | 'Low';
 
+/** Values accepted by the API's SkillType enum. */
+export type SkillType =
+  | 'ForkliftCertified'
+  | 'HazmatTrained'
+  | 'ColdStorageAuthorized'
+  | 'RFScannerProficient'
+  | 'QualityInspector'
+  | 'ReturnsSpecialist';
+
 export type WorkAssignmentStatus =
   | 'Pending'
   | 'Assigned'
@@ -26,7 +35,7 @@ export interface WorkAssignment {
   zoneId?: string | null;
   priority: LaborTaskPriority;
   status: WorkAssignmentStatus;
-  requiredSkills: string[];
+  requiredSkills: SkillType[];
   assignedOperatorId?: string | null;
   createdAt: string;
   assignedAt?: string | null;
@@ -42,7 +51,7 @@ export interface CreateWorkAssignmentDto {
   sourceTaskId: string;
   warehouseId: string;
   priority: LaborTaskPriority;
-  requiredSkills: string[];
+  requiredSkills: SkillType[];
   zoneId?: string | null;
   dueBy?: string | null;
   notes?: string | null;

@@ -2,47 +2,92 @@
       <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem;">
         <div>
           <h1 class="page-title">{{ 'RECEIVING.TITLE' | translate }}</h1>
-          <p class="page-subtitle">Manage incoming shipments and putaway operations</p>
+          <p class="page-subtitle">{{ 'UI.MANAGE_INCOMING_SHIPMENTS_AND_PUTAWAY_OPERATIONS' | translate }}</p>
         </div>
         <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;">
-          <p-dropdown
-            [options]="warehouseOptions()"
-            [(ngModel)]="selectedWarehouseId"
-            optionLabel="label"
-            optionValue="value"
-            placeholder="Select warehouse"
-            (onChange)="onWarehouseChange()"
-            styleClass="warehouse-select"
-            id="warehouse-select"
-          ></p-dropdown>
-          <button pButton icon="pi pi-plus" label="New ASN" class="p-button-outlined p-button-sm" id="new-asn-btn" (click)="openCreateAsnDialog()" [disabled]="!selectedWarehouseId"></button>
-          <button pButton icon="pi pi-download" label="{{ 'RECEIVING.RECEIVE_SHIPMENT' | translate }}" class="p-button-sm" id="receive-shipment-btn" (click)="openReceiveWizard()"></button>
+          <button pButton icon="pi pi-plus" [label]="'UI.NEW_ASN' | translate" class="p-button-outlined p-button-sm" id="new-asn-btn" (click)="openCreateAsnDialog()" [disabled]="!selectedWarehouseId"></button>
+          <button pButton icon="pi pi-plus" [label]="'UI.NEW_INBOUND_SHIPMENT' | translate" class="p-button-outlined p-button-sm" id="new-inbound-shipment-btn" (click)="openCreateInboundShipment()" [disabled]="!selectedWarehouseId"></button>
         </div>
       </div>
 
       <!-- Tabs -->
       <div class="tab-bar" style="margin-bottom:1.25rem;">
-        <button class="tab-btn" [class.active]="activeTab() === 'asn'" (click)="activeTab.set('asn')" id="tab-asn">ASN List</button>
-        <button class="tab-btn" [class.active]="activeTab() === 'putaway'" (click)="activeTab.set('putaway')" id="tab-putaway">Putaway Tasks</button>
+        <button class="tab-btn" [class.active]="activeTab() === 'asn'" (click)="activeTab.set('asn')" id="tab-asn">{{ 'UI.ASN_LIST' | translate }}</button>
+        <button class="tab-btn" [class.active]="activeTab() === 'inbound'" (click)="activeTab.set('inbound'); loadInboundShipments()" id="tab-inbound-shipments">{{ 'UI.INBOUND_SHIPMENTS' | translate }}</button>
+        <button class="tab-btn" [class.active]="activeTab() === 'recommendation'" (click)="activeTab.set('recommendation')" id="tab-putaway-recommendation">{{ 'UI.BIN_RECOMMENDATION' | translate }}</button>
+        <button class="tab-btn" [class.active]="activeTab() === 'putaway'" (click)="activeTab.set('putaway'); loadPutaway()" id="tab-putaway">{{ 'UI.PUTAWAY_TASKS' | translate }}</button>
+      </div>
+
+      <!-- Bin Recommendation Tab -->
+      <div *ngIf="activeTab() === 'recommendation'" class="section-card">
+        <div class="section-card-header">
+          <div><h3>{{ 'UI.BIN_RECOMMENDATION' | translate }}</h3><p>{{ 'UI.FIND_THE_BEST_STORAGE_BIN_BEFORE_CREATING_OR_COMPLETING_A_PUTAWAY_TASK' | translate }}</p></div>
+        </div>
+        <div *ngIf="!selectedWarehouseId" class="empty-state"><i class="pi pi-building"></i><p>{{ 'UI.SELECT_A_WAREHOUSE_TO_REQUEST_A_BIN_RECOMMENDATION' | translate }}</p></div>
+        <ng-container *ngIf="selectedWarehouseId">
+          <div class="form-grid form-grid--recommendation">
+            <div class="form-field form-field--item"><label>{{ 'UI.ITEM' | translate }}</label><p-dropdown appendTo="body" [options]="catalogItems()" optionLabel="name" optionValue="id" [(ngModel)]="recommendationForm.itemId" (ngModelChange)="onRecommendationItemChange($event)" [filter]="true" filterBy="sku,name" [loading]="catalogItemsLoading()" [placeholder]="'UI.SELECT_AN_ITEM' | translate" styleClass="w-full recommendation-item-select"><ng-template pTemplate="item" let-item><div class="item-option"><strong>{{ item.sku }}</strong><span>{{ item.name }}</span></div></ng-template><ng-template pTemplate="selectedItem" let-item><span *ngIf="item">{{ item.sku }} — {{ item.name }}</span></ng-template></p-dropdown></div>
+            <div class="form-field"><label>{{ 'UI.SKU' | translate }}</label><input pInputText [(ngModel)]="recommendationForm.sku" readonly /></div>
+            <div class="form-field"><label>{{ 'UI.ITEM_NAME' | translate }}</label><input pInputText [(ngModel)]="recommendationForm.itemName" readonly /></div>
+            <div class="form-field"><label>{{ 'UI.QUANTITY' | translate }}</label><p-inputNumber [(ngModel)]="recommendationForm.quantity" [min]="0.01" styleClass="w-full"></p-inputNumber></div>
+            <div class="form-field"><label>{{ 'UI.UOM_CODE' | translate }}</label><input pInputText [(ngModel)]="recommendationForm.uomCode" readonly /></div>
+            <div class="form-field"><label>{{ 'UI.UOM_NAME' | translate }}</label><input pInputText [(ngModel)]="recommendationForm.uomName" readonly /></div>
+            <div class="form-field"><label>{{ 'UI.LOT_NUMBER' | translate }}<small>{{ 'UI.OPTIONAL' | translate }}</small></label><input pInputText [(ngModel)]="recommendationForm.lotNumber" /></div>
+            <div class="form-field recommendation-date-field"><label>{{ 'UI.EXPIRATION_DATE' | translate }}<small>{{ 'UI.OPTIONAL' | translate }}</small></label><p-calendar appendTo="body" [(ngModel)]="recommendationForm.expirationDate" [showIcon]="true" dateFormat="yy-mm-dd" styleClass="w-full recommendation-calendar"></p-calendar></div>
+          </div>
+          <button pButton [label]="'UI.GET_RECOMMENDATION' | translate" icon="pi pi-map-marker" (click)="requestRecommendation()" [loading]="recommendationLoading()" [disabled]="!canRequestRecommendation()" id="get-putaway-recommendation"></button>
+          <div *ngIf="recommendation() as result" class="recommendation-result">
+            <div class="recommendation-result__icon"><i class="pi pi-map-marker"></i></div>
+            <div><span class="recommendation-result__label">{{ 'UI.RECOMMENDED_BIN' | translate }}</span><strong>{{ result.recommendedBinLabel || result.binLabel || shortId(result.recommendedBinId || result.binId) }}</strong><span *ngIf="recommendationMode(result.allocationMode) as mode" class="recommendation-result__mode">{{ mode }}</span></div>
+          </div>
+        </ng-container>
+      </div>
+
+      <!-- Inbound Shipments Tab -->
+      <div *ngIf="activeTab() === 'inbound'" class="section-card">
+        <div class="section-card-header">
+          <h3>{{ 'UI.INBOUND_SHIPMENTS' | translate }}</h3>
+          <div style="display:flex;gap:.5rem;align-items:center;">
+            <button pButton [label]="inboundPendingOnly() ? 'Pending only' : 'All shipments'" class="p-button-text p-button-sm" (click)="setInboundPendingOnly(!inboundPendingOnly())"></button>
+            <button pButton icon="pi pi-refresh" class="p-button-text p-button-sm" (click)="loadInboundShipments()" [loading]="inboundLoading()" [pTooltip]="'UI.REFRESH' | translate" [attr.aria-label]="'UI.REFRESH' | translate"></button>
+          </div>
+        </div>
+        <p-table [value]="inboundShipments()" [loading]="inboundLoading()" styleClass="p-datatable-sm" id="inbound-shipments-table">
+          <ng-template pTemplate="header"><tr><th>{{ 'UI.SHIPMENT' | translate }}</th><th>{{ 'UI.ASN' | translate }}</th><th>{{ 'UI.ARRIVED' | translate }}</th><th>{{ 'UI.LINES' | translate }}</th><th>{{ 'UI.STATUS' | translate }}</th><th>{{ 'UI.ACTIONS' | translate }}</th></tr></ng-template>
+          <ng-template pTemplate="body" let-shipment>
+            <tr>
+              <td><strong [title]="shipment.id">{{ inboundShipmentLabel(shipment) }}</strong></td>
+              <td>{{ asnNumber(shipment.asnId) }}</td>
+              <td>{{ shipment.arrivedAt ? (shipment.arrivedAt | date:'MMM d, yyyy, h:mm a') : '—' }}</td>
+              <td>{{ shipment.receivingLines?.length || 0 }}</td>
+              <td><p-tag [value]="shipment.status | uiLabel" [severity]="inboundSeverity(shipment.status)"></p-tag></td>
+              <td>
+                <button pButton icon="pi pi-eye" [label]="'UI.VIEW' | translate" class="p-button-text p-button-sm" (click)="openInboundDetails(shipment.id)"></button>
+                <button pButton icon="pi pi-list-check" [label]="'UI.GENERATE_TASKS' | translate" class="p-button-text p-button-sm" (click)="generatePutawayTasks(shipment)" [loading]="putawayActionLoading() === 'generate-' + shipment.id"></button>
+              </td>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="emptymessage"><tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-muted);">{{ 'UI.NO_INBOUND_SHIPMENTS_FOUND' | translate }}</td></tr></ng-template>
+        </p-table>
       </div>
 
       <!-- ASN List Tab -->
       <div *ngIf="activeTab() === 'asn'" class="section-card">
         <div class="section-card-header">
-          <h3>Advanced Shipment Notifications</h3>
+          <h3>{{ 'UI.ADVANCED_SHIPMENT_NOTIFICATIONS' | translate }}</h3>
           <div style="display:flex;gap:0.5rem;align-items:center;">
-            <button pButton icon="pi pi-refresh" class="p-button-text p-button-sm" (click)="loadASNs()" [loading]="loading()" pTooltip="Refresh" tooltipPosition="top"></button>
-            <span *ngFor="let s of statusFilters"
+            <button pButton icon="pi pi-refresh" class="p-button-text p-button-sm" (click)="loadASNs()" [loading]="loading()" [pTooltip]="'UI.REFRESH' | translate" [attr.aria-label]="'UI.REFRESH' | translate" tooltipPosition="top"></button>
+            <button type="button" *ngFor="let s of statusFilters"
               class="status-filter-chip"
               [class.active]="asnStatusFilter() === s.value"
               (click)="setStatusFilter(s.value)"
-            >{{ s.label }}</span>
+             [attr.aria-pressed]="asnStatusFilter() === s.value">{{ s.label | uiLabel }}</button>
           </div>
         </div>
 
         <div *ngIf="!selectedWarehouseId" class="empty-state">
           <i class="pi pi-building"></i>
-          <p>Select a warehouse to load pending ASNs</p>
+          <p>{{ 'UX.SELECT_WAREHOUSE_ASNS' | translate }}</p>
         </div>
 
         <p-table
@@ -57,12 +102,12 @@
           <ng-template pTemplate="header">
             <tr>
               <th style="width:3rem"></th>
-              <th>ASN #</th>
-              <th>Supplier</th>
-              <th>Expected Date</th>
-              <th>Items</th>
-              <th>Status</th>
-              <th>Actions</th>
+              <th>{{ 'UI.ASN' | translate }}</th>
+              <th>{{ 'UI.SUPPLIER' | translate }}</th>
+              <th>{{ 'UI.EXPECTED_DATE' | translate }}</th>
+              <th>{{ 'UI.ITEMS' | translate }}</th>
+              <th>{{ 'UI.STATUS' | translate }}</th>
+              <th>{{ 'UI.ACTIONS' | translate }}</th>
             </tr>
           </ng-template>
           <ng-template pTemplate="body" let-asn let-expanded="expanded">
@@ -77,13 +122,13 @@
                   [id]="'expand-asn-' + asn.id"
                 ></button>
               </td>
-              <td><code style="color:var(--brand-accent);font-size:0.82rem;">{{ asn.asnNumber }}</code></td>
+              <td><code [pTooltip]="asn.id" style="color:var(--brand-accent);font-size:0.82rem;">{{ asn.asnNumber }}</code></td>
               <td><span style="font-weight:500;">{{ asn.supplierName }}</span></td>
               <td><span style="font-size:0.8rem;color:var(--text-muted);">{{ asn.expectedDate | date:'MMM d, yyyy' }}</span></td>
-              <td><span style="font-size:0.82rem;">{{ asn.items.length }} lines</span></td>
+              <td><span style="font-size:0.82rem;">{{ asn.items.length }} {{ 'UI.LINES' | translate }}</span></td>
               <td>
                 <p-tag
-                  [value]="getASNStatusLabel(asn.status)"
+                  [value]="getASNStatusLabel(asn.status) | uiLabel"
                   [severity]="getASNSeverity(asn.status)"
                 ></p-tag>
               </td>
@@ -93,7 +138,7 @@
                     *ngIf="asn.status !== 'complete' && asn.status !== 'cancelled'"
                     (click)="openReceiveWizard(asn)"
                     [id]="'receive-asn-' + asn.id"
-                    pTooltip="Start receiving" tooltipPosition="top">
+                    [pTooltip]="'UI.START_RECEIVING' | translate" [attr.aria-label]="'UI.START_RECEIVING' | translate" tooltipPosition="top">
                   </button>
                 </div>
               </td>
@@ -103,18 +148,18 @@
             <tr class="asn-lines-row">
               <td colspan="7">
                 <div class="asn-lines-panel">
-                  <h4>ASN Line Items</h4>
+                  <h4>{{ 'UI.ASN_LINE_ITEMS' | translate }}</h4>
                   <p-table [value]="asn.items" styleClass="p-datatable-sm p-datatable-gridlines">
                     <ng-template pTemplate="header">
                       <tr>
-                        <th>SKU</th>
-                        <th>Item</th>
-                        <th>Expected Qty</th>
-                        <th>Received Qty</th>
-                        <th>UOM</th>
-                        <th>Lot #</th>
-                        <th>Expiry</th>
-                        <th>Status</th>
+                        <th>{{ 'UI.SKU' | translate }}</th>
+                        <th>{{ 'UI.ITEM' | translate }}</th>
+                        <th>{{ 'UI.EXPECTED_QTY' | translate }}</th>
+                        <th>{{ 'UI.RECEIVED_QTY' | translate }}</th>
+                        <th>{{ 'UI.UOM' | translate }}</th>
+                        <th>{{ 'UI.LOT' | translate }}</th>
+                        <th>{{ 'UI.EXPIRY' | translate }}</th>
+                        <th>{{ 'UI.STATUS' | translate }}</th>
                       </tr>
                     </ng-template>
                     <ng-template pTemplate="body" let-line>
@@ -124,8 +169,8 @@
                         <td>{{ line.expectedQty | number:'1.0-2' }}</td>
                         <td>{{ line.receivedQty | number:'1.0-2' }}</td>
                         <td>{{ line.uomName || line.uom }}</td>
-                        <td>{{ line.lotNumber || 'â€”' }}</td>
-                        <td>{{ line.expirationDate ? (line.expirationDate | date:'MMM d, yyyy') : 'â€”' }}</td>
+                        <td>{{ line.lotNumber || '—' }}</td>
+                        <td>{{ line.expirationDate ? (line.expirationDate | date:'MMM d, yyyy') : '—' }}</td>
                         <td>
                           <p-tag
                             [value]="line.isFullyReceived ? 'Received' : 'Pending'"
@@ -135,7 +180,7 @@
                       </tr>
                     </ng-template>
                     <ng-template pTemplate="emptymessage">
-                      <tr><td colspan="8" style="text-align:center;color:var(--text-muted);">No line items</td></tr>
+                      <tr><td colspan="8" style="text-align:center;color:var(--text-muted);">{{ 'UI.NO_LINE_ITEMS' | translate }}</td></tr>
                     </ng-template>
                   </p-table>
                 </div>
@@ -145,184 +190,168 @@
           <ng-template pTemplate="emptymessage">
             <tr>
               <td colspan="7" style="text-align:center;padding:2rem;color:var(--text-muted);">
-                No pending ASNs for this warehouse
-              </td>
+                {{ 'UX.NO_MATCHING_ASNS' | translate }}</td>
             </tr>
           </ng-template>
         </p-table>
       </div>
 
       <!-- Putaway Tasks Tab -->
-      <div *ngIf="activeTab() === 'putaway'" class="section-card">
+      <div *ngIf="activeTab() === 'putaway'" class="section-card"><p role="alert" *ngIf="putawayReconciliationWarning()" class="api-reconciliation-warning">{{ 'UX.PUTAWAY_RECONCILE' | translate }} <code>{{ putawayReconciliationWarning() }}</code></p>
         <div class="section-card-header">
-          <h3>Putaway Tasks</h3>
-          <span class="status-badge warning">{{ pendingPutaway() }} pending</span>
+          <h3>{{ 'UI.PUTAWAY_TASKS' | translate }}</h3>
+          <div style="display:flex;align-items:center;gap:.5rem;">
+            <span class="status-badge warning">{{ pendingPutaway() }} {{ 'UI.PENDING' | translate }}</span>
+            <button pButton icon="pi pi-refresh" class="p-button-text p-button-sm" (click)="loadPutaway()" [loading]="putawayLoading()" [pTooltip]="'UI.REFRESH' | translate" [attr.aria-label]="'UI.REFRESH' | translate"></button>
+          </div>
         </div>
-        <p-table [value]="putawayTasks()" styleClass="p-datatable-sm" id="putaway-table">
+        <p-table [value]="putawayTasks()" [loading]="putawayLoading()" styleClass="p-datatable-sm" id="putaway-table">
           <ng-template pTemplate="header">
             <tr>
-              <th>SKU</th>
-              <th>Item</th>
-              <th>Quantity</th>
-              <th>Suggested Bin</th>
-              <th>Confirmed Bin</th>
-              <th>Status</th>
-              <th>Actions</th>
+              <th>{{ 'UI.SKU' | translate }}</th>
+              <th>{{ 'UI.ITEM' | translate }}</th>
+              <th>{{ 'UI.QUANTITY' | translate }}</th>
+              <th>{{ 'UI.RECOMMENDED_BIN' | translate }}</th>
+              <th>{{ 'UI.ACTUAL_BIN' | translate }}</th>
+              <th>{{ 'UI.STATUS' | translate }}</th>
+              <th>{{ 'UI.ACTIONS' | translate }}</th>
             </tr>
           </ng-template>
           <ng-template pTemplate="body" let-task>
             <tr>
               <td><code style="color:var(--brand-accent);font-size:0.78rem;">{{ task.sku }}</code></td>
               <td><span style="font-weight:500;">{{ task.itemName }}</span></td>
-              <td><span style="font-weight:700;">{{ task.quantity }} {{ task.uom }}</span></td>
+              <td><span style="font-weight:700;">{{ task.quantityToPlace }} {{ task.uomName || task.uomCode }}</span></td>
               <td>
                 <span class="suggested-bin">
                   <i class="pi pi-map-marker" style="color:var(--brand-accent);margin-right:0.25rem;"></i>
-                  {{ task.suggestedBin }}
+                  {{ task.recommendedBinLabel || shortId(task.recommendedBinId) }}
                 </span>
               </td>
               <td>
-                <span *ngIf="task.confirmedBin" style="color:var(--color-success);font-weight:500;">{{ task.confirmedBin }}</span>
-                <span *ngIf="!task.confirmedBin" style="color:var(--text-muted);">â€”</span>
+                <span *ngIf="task.actualBinId" style="color:var(--color-success);font-weight:500;">{{ shortId(task.actualBinId) }}</span>
+                <span *ngIf="!task.actualBinId" style="color:var(--text-muted);">—</span>
               </td>
               <td>
-                <p-tag [value]="task.status | titlecase" [severity]="task.status === 'completed' ? 'success' : 'warning'"></p-tag>
+                <p-tag [value]="task.status | uiLabel" [severity]="putawaySeverity(task.status)"></p-tag>
               </td>
               <td>
-                <button pButton icon="pi pi-check" label="Confirm" class="p-button-sm"
-                  *ngIf="task.status === 'pending'"
-                  (click)="confirmPutaway(task)"
-                  [id]="'confirm-putaway-' + task.id">
-                </button>
+                <div style="display:flex;gap:.35rem;flex-wrap:wrap;">
+                  <button pButton icon="pi pi-user-plus" [label]="'UI.ASSIGN' | translate" class="p-button-outlined p-button-sm" *ngIf="!task.assignedTo && !isPutawayFinished(task)" (click)="openAssignPutaway(task)" [loading]="putawayActionLoading() === task.id"></button>
+                  <button pButton icon="pi pi-play" [label]="'UI.START' | translate" class="p-button-outlined p-button-sm" *ngIf="task.assignedTo && !task.startedAt && !isPutawayFinished(task)" (click)="startPutaway(task)" [loading]="putawayActionLoading() === task.id"></button>
+                  <button pButton icon="pi pi-check" [label]="'UI.COMPLETE' | translate" class="p-button-sm" *ngIf="task.startedAt && !isPutawayFinished(task)" (click)="openCompletePutaway(task)" [disabled]="putawayActionLoading() === task.id || putawayReconciliationWarning() === task.id"></button>
+                </div>
               </td>
             </tr>
           </ng-template>
         </p-table>
       </div>
 
+      <p-dialog [(visible)]="showCompletePutaway" [modal]="true" [style]="{width:'520px',maxWidth:'95vw'}" [header]="'UI.COMPLETE_PUTAWAY_TASK' | translate" id="complete-putaway-dialog">
+        <div class="form-grid" *ngIf="selectedPutawayTask() as task">
+          <div class="form-field form-field--full"><label>{{ 'UI.TASK' | translate }}</label><span>{{ task.sku }} — {{ task.itemName }}</span></div>
+          <div class="form-field form-field--full"><label for="putaway-bin">{{ 'UI.ACTUAL_BIN' | translate }}</label><select id="putaway-bin" class="p-inputtext w-full" [(ngModel)]="completePutawayForm.actualBinId" [disabled]="putawayBinsLoading()"><option value="">{{ 'UX.SELECT_BIN' | translate }}</option><option *ngFor="let bin of putawayBins()" [value]="bin.id">{{ bin.binCode }}</option></select><small *ngIf="putawayBinsLoading()">{{ 'COMMON.LOADING' | translate }}</small></div>
+          <div class="form-field form-field--full"><label>{{ 'UI.OVERRIDE_REASON' | translate }}<small>{{ 'UI.REQUIRED_IF_DIFFERENT_FROM_THE_RECOMMENDATION' | translate }}</small></label><textarea pInputText rows="3" [(ngModel)]="completePutawayForm.overrideReason" style="width:100%;resize:vertical" [placeholder]="'UI.EXPLAIN_WHY_ANOTHER_BIN_WAS_USED' | translate"></textarea></div>
+        </div>
+        <ng-template pTemplate="footer"><button pButton [label]="'UI.CANCEL' | translate" class="p-button-text" (click)="showCompletePutaway = false"></button><button pButton [label]="'UI.COMPLETE' | translate" icon="pi pi-check" (click)="completePutaway()" [loading]="putawayActionLoading() === selectedPutawayTask()?.id" [disabled]="!canCompletePutaway()"></button></ng-template>
+      </p-dialog>
+
+      <p-dialog [(visible)]="showAssignPutaway" [modal]="true" [style]="{width:'480px',maxWidth:'95vw'}" [header]="'UI.ASSIGN_PUTAWAY_TASK' | translate" id="assign-putaway-dialog">
+        <div class="form-grid" *ngIf="assignedPutawayTask() as task">
+          <div class="form-field form-field--full"><label>{{ 'UI.TASK' | translate }}</label><span>{{ task.sku }} — {{ task.itemName }}</span></div>
+          <div class="form-field form-field--full"><label for="putaway-operator">{{ 'UI.OPERATOR' | translate }}</label><select id="putaway-operator" class="p-inputtext w-full" [(ngModel)]="selectedPutawayOperatorId" [disabled]="putawayOperatorsLoading()"><option value="">{{ 'UI.SELECT_AN_OPERATOR' | translate }}</option><option *ngFor="let operator of putawayOperators()" [value]="operator.id">{{ operator.name }} — {{ operator.username }}</option></select><small *ngIf="!putawayOperatorsLoading() && !putawayOperators().length">{{ 'UI.NO_ACTIVE_OPERATORS_ARE_AVAILABLE_FOR_THIS_WAREHOUSE' | translate }}</small></div>
+        </div>
+        <ng-template pTemplate="footer"><button pButton [label]="'UI.CANCEL' | translate" class="p-button-text" (click)="showAssignPutaway = false"></button><button pButton [label]="'UI.ASSIGN_OPERATOR' | translate" icon="pi pi-user-plus" (click)="assignPutaway()" [loading]="putawayActionLoading() === assignedPutawayTask()?.id" [disabled]="!selectedPutawayOperatorId"></button></ng-template>
+      </p-dialog>
+
       <!-- Create ASN Dialog -->
+      <p-dialog [(visible)]="showCreateInboundShipment" [modal]="true" [style]="{width:'900px',maxWidth:'95vw'}" [header]="'UI.CREATE_INBOUND_SHIPMENT' | translate" id="create-inbound-shipment-dialog">
+        <div class="create-asn-form" *ngIf="showCreateInboundShipment">
+          <div class="form-grid"><div class="form-field form-field--full"><label>{{ 'UI.ASN_OPTIONAL' | translate }}</label><p-dropdown appendTo="body" [options]="receivableAsns()" optionLabel="asnNumber" optionValue="id" [(ngModel)]="inboundForm.asnId" (onChange)="onInboundAsnChange($event.value)" [showClear]="true" [placeholder]="'UI.SELECT_AN_ASN_FOR_THIS_SHIPMENT' | translate" styleClass="w-full" id="inbound-asn-select"></p-dropdown><small *ngIf="inboundForm.asnId">{{ 'UI.LINE_ITEMS_AND_REMAINING_QUANTITIES_ARE_LOADED_FROM_THE_SELECTED_ASN' | translate }}</small></div></div>
+          <div class="lines-section"><div class="lines-header"><h4>{{ 'UI.RECEIVED_LINES' | translate }}</h4><button pButton icon="pi pi-plus" [label]="'UI.ADD_LINE' | translate" class="p-button-outlined p-button-sm" (click)="addInboundLine()"></button></div>
+            <div class="line-card" *ngFor="let line of inboundForm.lines; let i = index">
+              <div class="line-card-header"><span>{{ 'UX.LINE_NUMBER' | translate:{number:i + 1} }}</span><button pButton icon="pi pi-trash" class="p-button-text p-button-danger p-button-sm" *ngIf="inboundForm.lines.length > 1" (click)="removeInboundLine(i)"></button></div>
+              <div class="form-grid form-grid--lines">
+                <div class="form-field form-field--full"><label>{{ 'UI.CATALOG_ITEM' | translate }}</label><p-dropdown appendTo="body" [options]="catalogItems()" optionLabel="name" optionValue="id" [(ngModel)]="line.itemId" (onChange)="onInboundItemChange(line, $event.value)" [filter]="true" filterBy="sku,name" [loading]="catalogItemsLoading()" [placeholder]="'UI.SEARCH_BY_SKU_OR_ITEM_NAME' | translate" styleClass="w-full"><ng-template pTemplate="item" let-item><div><strong>{{ item.sku }}</strong> — {{ item.name }}</div></ng-template></p-dropdown></div>
+                <div class="form-field"><label>{{ 'UI.SKU' | translate }}</label><input pInputText [(ngModel)]="line.sku" readonly /></div><div class="form-field"><label>{{ 'UI.ITEM_NAME' | translate }}</label><input pInputText [(ngModel)]="line.itemName" readonly /></div><div class="form-field"><label>{{ 'UI.RECEIVED_QTY' | translate }}</label><p-inputNumber [(ngModel)]="line.receivedQuantity" [min]="0" styleClass="w-full"></p-inputNumber></div>
+                <div class="form-field"><label>{{ 'UI.UOM_CODE' | translate }}</label><input pInputText [(ngModel)]="line.uomCode" readonly /></div><div class="form-field"><label>{{ 'UI.UOM_NAME' | translate }}</label><input pInputText [(ngModel)]="line.uomName" readonly /></div><div class="form-field"><label>{{ 'UI.LOT_NUMBER' | translate }}</label><input pInputText [(ngModel)]="line.lotNumber" /></div><div class="form-field"><label>{{ 'UI.SERIAL_NUMBER' | translate }}</label><input pInputText [(ngModel)]="line.serialNumber" /></div>
+                <div class="form-field"><label>{{ 'UI.EXPIRATION_DATE' | translate }}</label><p-calendar appendTo="body" [(ngModel)]="line.expirationDate" [showIcon]="true" dateFormat="yy-mm-dd" styleClass="w-full"></p-calendar></div><div class="form-field"><label>{{ 'UI.CONDITION' | translate }}</label><input pInputText [(ngModel)]="line.condition" list="receiving-conditions" [placeholder]="'UI.GOOD' | translate" /><datalist id="receiving-conditions" *ngIf="i === 0"><option value="Good"></option></datalist><small>{{ 'UX.CONTRACT_FREE_TEXT' | translate }}</small></div><div class="form-field"><label>{{ 'UI.RECEIVED_BY' | translate }}</label><input pInputText [value]="currentUserName" readonly /></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <ng-template pTemplate="footer"><button pButton [label]="'UI.CANCEL' | translate" class="p-button-text" (click)="showCreateInboundShipment = false"></button><button pButton [label]="'UI.CREATE_SHIPMENT' | translate" icon="pi pi-check" (click)="submitCreateInboundShipment()" [loading]="creatingInboundShipment()" [disabled]="!canCreateInboundShipment()"></button></ng-template>
+      </p-dialog>
+
+      <p-dialog [(visible)]="showInboundDetails" [modal]="true" [style]="{width:'1000px',maxWidth:'95vw'}" [header]="'UI.INBOUND_SHIPMENT_DETAILS' | translate" id="inbound-shipment-details-dialog">
+        <ng-container *ngIf="selectedInboundShipment() as shipment">
+          <div class="shipment-summary"><span><strong>{{ 'UI.SHIPMENT' | translate }}</strong> {{ inboundShipmentLabel(shipment) }}</span><span><strong>{{ 'UI.ASN' | translate }}</strong> {{ asnNumber(shipment.asnId) }}</span><span><strong>{{ 'UI.ARRIVED' | translate }}</strong> {{ shipment.arrivedAt | date:'medium' }}</span><p-tag [value]="shipment.status | uiLabel" [severity]="inboundSeverity(shipment.status)"></p-tag></div>
+          <h4>{{ 'UI.RECEIVING_LINES' | translate }}</h4><p-table [value]="shipment.receivingLines" styleClass="p-datatable-sm p-datatable-gridlines"><ng-template pTemplate="header"><tr><th>{{ 'UI.SKU' | translate }}</th><th>{{ 'UI.ITEM' | translate }}</th><th>{{ 'UI.QTY' | translate }}</th><th>{{ 'UI.UOM' | translate }}</th><th>{{ 'UI.LOT_SERIAL' | translate }}</th><th>{{ 'UI.CONDITION' | translate }}</th></tr></ng-template><ng-template pTemplate="body" let-line><tr><td>{{ line.sku }}</td><td>{{ line.itemName }}</td><td>{{ line.receivedQuantity }}</td><td>{{ line.uomName || line.uomCode }}</td><td>{{ line.lotNumber || '—' }}{{ line.serialNumber ? ' / ' + line.serialNumber : '' }}</td><td>{{ line.condition }}</td></tr></ng-template></p-table>
+          <div class="detail-actions-grid">
+            <div class="line-card"><h4>{{ 'UI.REPORT_DISCREPANCY' | translate }}</h4><div class="form-field"><label>{{ 'UI.RECEIVING_LINE' | translate }}</label><p-dropdown appendTo="body" [options]="shipment.receivingLines" optionLabel="sku" optionValue="id" [(ngModel)]="discrepancyForm.lineId" [placeholder]="'UI.SELECT_LINE' | translate"></p-dropdown></div><div class="form-field"><label>{{ 'UI.TYPE' | translate }}</label><input pInputText [(ngModel)]="discrepancyForm.type" [placeholder]="'UI.E_G_DAMAGED' | translate" /></div><div class="form-field"><label>{{ 'UI.DESCRIPTION' | translate }}</label><textarea pInputText rows="2" [(ngModel)]="discrepancyForm.description" style="width:100%"></textarea></div><button pButton [label]="'UI.ADD_DISCREPANCY' | translate" class="p-button-sm" (click)="addDiscrepancy()"></button></div>
+            <div class="line-card"><h4>{{ 'UI.ADD_INSPECTION' | translate }}</h4><div class="form-field"><label>{{ 'UI.RESULT' | translate }}</label><input pInputText [(ngModel)]="inspectionForm.result" list="inspection-results" [placeholder]="'UI.E_G_PASSED' | translate" /><datalist id="inspection-results"><option value="Passed"></option></datalist><small>{{ 'UX.CONTRACT_FREE_TEXT' | translate }}</small></div><div class="form-field"><label>{{ 'UI.NOTES' | translate }}</label><textarea pInputText rows="2" [(ngModel)]="inspectionForm.notes" style="width:100%"></textarea></div><button pButton [label]="'UI.ADD_INSPECTION' | translate" class="p-button-sm" (click)="addInspection()"></button></div>
+          </div>
+          <div class="detail-lists"><div><h4>{{ 'UI.DISCREPANCIES' | translate }} ({{ shipment.discrepancies.length }})</h4><p *ngFor="let item of shipment.discrepancies">{{ item.type }}: {{ item.description }}</p></div><div><h4>{{ 'UI.INSPECTIONS' | translate }} ({{ shipment.inspections.length }})</h4><p *ngFor="let item of shipment.inspections">{{ item.result }}<span *ngIf="item.notes">: {{ item.notes }}</span></p></div></div>
+        </ng-container>
+        <ng-template pTemplate="footer"><button pButton [label]="'UI.CLOSE' | translate" class="p-button-text" (click)="showInboundDetails = false"></button><button pButton [label]="'UI.COMPLETE_RECEIVING' | translate" icon="pi pi-check" (click)="completeReceiving()" [loading]="completingInboundShipment()" [disabled]="selectedInboundShipment()?.status?.toLowerCase()?.includes('complete')"></button></ng-template>
+      </p-dialog>
+
       <p-dialog
         [(visible)]="showCreateAsn"
         [modal]="true"
         [style]="{width:'820px',maxWidth:'95vw'}"
-        header="Create ASN"
+        [header]="'UI.CREATE_ASN' | translate"
         id="create-asn-dialog"
       >
-        <div class="create-asn-form" *ngIf="showCreateAsn">
+        <div class="create-asn-form" *ngIf="showCreateAsn"><div class="form-field" style="margin-bottom:1rem"><label for="known-supplier">{{ 'UX.KNOWN_SUPPLIER' | translate }}</label><select id="known-supplier" class="p-inputtext" [ngModel]="createForm.supplierId" (ngModelChange)="selectSupplier($event)"><option value="">{{ 'UX.NEW_SUPPLIER' | translate }}</option><option *ngFor="let supplier of knownSuppliers()" [value]="supplier.id">{{ supplier.name }}</option></select><small>{{ 'UX.SUPPLIER_HELP' | translate }}</small></div>
           <div class="form-grid">
             <div class="form-field">
-              <label>Supplier ID</label>
-              <input pInputText [(ngModel)]="createForm.supplierId" placeholder="Supplier UUID" id="create-supplier-id" />
+              <label>{{ 'UI.SUPPLIER_ID' | translate }}</label>
+              <input pInputText [(ngModel)]="createForm.supplierId" [placeholder]="'UI.SUPPLIER_UUID' | translate" id="create-supplier-id" /><small *ngIf="createForm.supplierId && !isUuid(createForm.supplierId)" role="alert">{{ 'UX.VALID_UUID' | translate }}</small>
             </div>
             <div class="form-field">
-              <label>Supplier Name</label>
-              <input pInputText [(ngModel)]="createForm.supplierName" placeholder="Supplier name" id="create-supplier-name" />
+              <label>{{ 'UI.SUPPLIER_NAME' | translate }}</label>
+              <input pInputText [(ngModel)]="createForm.supplierName" [placeholder]="'UI.SUPPLIER_NAME' | translate" id="create-supplier-name" />
             </div>
             <div class="form-field">
-              <label>Expected Arrival Date</label>
-              <p-calendar [(ngModel)]="createForm.expectedArrivalDate" [showTime]="true" [showIcon]="true" dateFormat="yy-mm-dd" styleClass="w-full" id="create-expected-date"></p-calendar>
+              <label>{{ 'UI.EXPECTED_ARRIVAL_DATE' | translate }}</label>
+              <p-calendar appendTo="body" [(ngModel)]="createForm.expectedArrivalDate" [showTime]="true" [showIcon]="true" dateFormat="yy-mm-dd" styleClass="w-full" id="create-expected-date"></p-calendar>
             </div>
             <div class="form-field form-field--full">
-              <label>Notes</label>
-              <textarea pInputText rows="2" [(ngModel)]="createForm.notes" placeholder="Optional notes" style="width:100%;resize:vertical;" id="create-notes"></textarea>
+              <label>{{ 'UI.NOTES' | translate }}</label>
+              <textarea pInputText rows="2" [(ngModel)]="createForm.notes" [placeholder]="'UI.OPTIONAL_NOTES' | translate" style="width:100%;resize:vertical;" id="create-notes"></textarea>
             </div>
           </div>
 
           <div class="lines-section">
             <div class="lines-header">
-              <h4>Line Items</h4>
-              <button pButton icon="pi pi-plus" label="Add Line" class="p-button-outlined p-button-sm" (click)="addCreateLine()" id="add-asn-line-btn"></button>
+              <h4>{{ 'UI.LINE_ITEMS' | translate }}</h4>
+              <button pButton icon="pi pi-plus" [label]="'UI.ADD_LINE' | translate" class="p-button-outlined p-button-sm" (click)="addCreateLine()" id="add-asn-line-btn"></button>
             </div>
             <div class="line-card" *ngFor="let line of createForm.lines; let i = index">
               <div class="line-card-header">
-                <span>Line {{ i + 1 }}</span>
+                <span>{{ 'UX.LINE_NUMBER' | translate:{number:i + 1} }}</span>
                 <button pButton icon="pi pi-trash" class="p-button-text p-button-danger p-button-sm" (click)="removeCreateLine(i)" *ngIf="createForm.lines.length > 1" [id]="'remove-line-' + i"></button>
               </div>
               <div class="form-grid form-grid--lines">
-                <div class="form-field"><label>Item ID</label><input pInputText [(ngModel)]="line.itemId" placeholder="Item UUID" /></div>
-                <div class="form-field"><label>SKU</label><input pInputText [(ngModel)]="line.sku" placeholder="SKU" /></div>
-                <div class="form-field"><label>Item Name</label><input pInputText [(ngModel)]="line.itemName" placeholder="Item name" /></div>
-                <div class="form-field"><label>Expected Qty</label><p-inputNumber [(ngModel)]="line.expectedQuantity" [min]="0" styleClass="w-full"></p-inputNumber></div>
-                <div class="form-field"><label>UOM Code</label><input pInputText [(ngModel)]="line.uomCode" placeholder="e.g. KG" /></div>
-                <div class="form-field"><label>UOM Name</label><input pInputText [(ngModel)]="line.uomName" placeholder="e.g. Kilogram" /></div>
-                <div class="form-field"><label>Lot Number</label><input pInputText [(ngModel)]="line.lotNumber" placeholder="Lot #" /></div>
-                <div class="form-field"><label>Expiration Date</label><p-calendar [(ngModel)]="line.expirationDate" [showIcon]="true" dateFormat="yy-mm-dd" styleClass="w-full"></p-calendar></div>
+                <div class="form-field form-field--full"><label>{{ 'UI.CATALOG_ITEM' | translate }}</label><p-dropdown appendTo="body" [options]="catalogItems()" optionLabel="name" optionValue="id" [(ngModel)]="line.itemId" (onChange)="onCreateAsnItemChange(line, $event.value)" [filter]="true" filterBy="sku,name" [loading]="catalogItemsLoading()" [placeholder]="'UI.SEARCH_BY_SKU_OR_ITEM_NAME' | translate" styleClass="w-full"><ng-template pTemplate="item" let-item><div><strong>{{ item.sku }}</strong> — {{ item.name }}</div></ng-template></p-dropdown></div>
+                <div class="form-field"><label>{{ 'UI.SKU' | translate }}</label><input pInputText [(ngModel)]="line.sku" readonly /></div>
+                <div class="form-field"><label>{{ 'UI.ITEM_NAME' | translate }}</label><input pInputText [(ngModel)]="line.itemName" readonly /></div>
+                <div class="form-field"><label>{{ 'UI.EXPECTED_QTY' | translate }}</label><p-inputNumber [(ngModel)]="line.expectedQuantity" [min]="0" styleClass="w-full"></p-inputNumber></div>
+                <div class="form-field"><label>{{ 'UI.UOM_CODE' | translate }}</label><input pInputText [(ngModel)]="line.uomCode" [placeholder]="'UI.E_G_KG' | translate" /></div>
+                <div class="form-field"><label>{{ 'UI.UOM_NAME' | translate }}</label><input pInputText [(ngModel)]="line.uomName" [placeholder]="'UI.E_G_KILOGRAM' | translate" /></div>
+                <div class="form-field"><label>{{ 'UI.LOT_NUMBER' | translate }}</label><input pInputText [(ngModel)]="line.lotNumber" [placeholder]="'UI.LOT' | translate" /></div>
+                <div class="form-field"><label>{{ 'UI.EXPIRATION_DATE' | translate }}</label><p-calendar appendTo="body" [(ngModel)]="line.expirationDate" [showIcon]="true" dateFormat="yy-mm-dd" styleClass="w-full"></p-calendar></div>
               </div>
             </div>
           </div>
         </div>
 
         <ng-template pTemplate="footer">
-          <button pButton label="Cancel" class="p-button-text" (click)="showCreateAsn = false" id="create-asn-cancel-btn"></button>
-          <button pButton label="Create ASN" icon="pi pi-check" (click)="submitCreateAsn()" [loading]="creatingAsn()" [disabled]="!canCreateAsn()" id="create-asn-submit-btn"></button>
+          <button pButton [label]="'UI.CANCEL' | translate" class="p-button-text" (click)="showCreateAsn = false" id="create-asn-cancel-btn"></button>
+          <button pButton [label]="'UI.CREATE_ASN' | translate" icon="pi pi-check" (click)="submitCreateAsn()" [loading]="creatingAsn()" [disabled]="!canCreateAsn()" id="create-asn-submit-btn"></button>
         </ng-template>
       </p-dialog>
 
-      <!-- Receive Wizard Dialog -->
-      <p-dialog
-        [(visible)]="showWizard"
-        [modal]="true"
-        [style]="{width:'700px',maxWidth:'95vw'}"
-        header="Receive Shipment"
-        id="receive-wizard-dialog"
-      >
-        <div *ngIf="showWizard" style="padding:0.5rem 0;">
-          <p-steps [model]="wizardSteps" [activeIndex]="wizardStep()" [readonly]="true" styleClass="mb-4"></p-steps>
 
-          <div *ngIf="wizardStep() === 0" class="wizard-step">
-            <h3 class="wizard-step-title">Select ASN or Create Manual Receipt</h3>
-            <p-dropdown [options]="filteredAsns()" optionLabel="asnNumber" optionValue="id" [(ngModel)]="selectedASNId" placeholder="Select an ASN" styleClass="w-full" id="asn-select-dropdown"></p-dropdown>
-          </div>
-
-          <div *ngIf="wizardStep() === 1" class="wizard-step">
-            <h3 class="wizard-step-title">Scan / Enter Items</h3>
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem;margin-bottom:1rem;">
-              <div class="form-field"><label>Barcode / SKU</label><input pInputText placeholder="Scan or type SKU" id="scan-sku-input"/></div>
-              <div class="form-field"><label>Quantity Received</label><input pInputText type="number" placeholder="0" id="scan-qty-input"/></div>
-              <div class="form-field"><label>Condition</label>
-                <p-dropdown [options]="conditionOptions" optionLabel="label" optionValue="value" placeholder="Condition" id="condition-dropdown"></p-dropdown>
-              </div>
-            </div>
-            <button pButton icon="pi pi-plus" label="Add Line" class="p-button-outlined p-button-sm" id="add-scan-line-btn"></button>
-          </div>
-
-          <div *ngIf="wizardStep() === 2" class="wizard-step">
-            <h3 class="wizard-step-title">Discrepancy & Damage Capture</h3>
-            <p-fileUpload mode="basic" chooseLabel="Upload Damage Photos" accept="image/*" [multiple]="true" id="damage-photo-upload" styleClass="mb-3"></p-fileUpload>
-            <textarea pInputText rows="3" placeholder="Describe discrepancies..." style="width:100%;resize:vertical;background:var(--surface-overlay);border:1px solid var(--surface-border);border-radius:var(--radius-md);padding:0.75rem;color:var(--text-primary);" id="discrepancy-notes"></textarea>
-          </div>
-
-          <div *ngIf="wizardStep() === 3" class="wizard-step">
-            <h3 class="wizard-step-title">Quality Inspection Checklist</h3>
-            <div class="qc-checklist">
-              <label class="qc-item" *ngFor="let item of qcChecklist; let i = index">
-                <input type="checkbox" [(ngModel)]="item.checked" [id]="'qc-' + i" />
-                <span>{{ item.label }}</span>
-              </label>
-            </div>
-          </div>
-
-          <div *ngIf="wizardStep() === 4" class="wizard-step">
-            <h3 class="wizard-step-title">Confirm Receipt</h3>
-            <div class="confirm-summary">
-              <div class="confirm-row"><span>ASN Number</span><strong>{{ selectedASNId || 'Manual Receipt' }}</strong></div>
-              <div class="confirm-row"><span>Items Scanned</span><strong>â€”</strong></div>
-              <div class="confirm-row"><span>Discrepancies</span><strong style="color:var(--color-warning);">0</strong></div>
-              <div class="confirm-row"><span>QC Status</span><strong style="color:var(--color-success);">Passed</strong></div>
-            </div>
-          </div>
-        </div>
-
-        <ng-template pTemplate="footer">
-          <button pButton label="Back" class="p-button-text" (click)="prevStep()" *ngIf="wizardStep() > 0" id="wizard-back-btn"></button>
-          <button pButton label="Cancel" class="p-button-text" (click)="showWizard = false" id="wizard-cancel-btn"></button>
-          <button pButton
-            [label]="wizardStep() === 4 ? 'Confirm Receipt' : 'Next'"
-            [icon]="wizardStep() === 4 ? 'pi pi-check' : 'pi pi-arrow-right'"
-            [iconPos]="'right'"
-            (click)="nextStep()"
-            id="wizard-next-btn"
-          ></button>
-        </ng-template>
-      </p-dialog>
     </div>

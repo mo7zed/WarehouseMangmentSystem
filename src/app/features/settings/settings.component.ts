@@ -1,3 +1,4 @@
+import { UiLabelPipe, UiOptionsPipe } from '../../shared/pipes/ui-label.pipe';
 // src/app/features/settings/settings.component.ts
 
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
@@ -30,7 +31,7 @@ import {
 @Component({
   selector: 'app-settings',
   standalone: true,
-  imports: [
+  imports: [UiLabelPipe, UiOptionsPipe,
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
@@ -91,11 +92,9 @@ export class SettingsComponent implements OnInit {
   setupWarehouse = signal<Warehouse | null>(null);
   setupSaving = signal(false);
   activatingId = signal<string | null>(null);
-  isEditMode = signal(false);
-  currentWarehouseId: string | null = null;
 
   warehouseForm = this.fb.group({
-    code: ['', Validators.required],
+    code: ['', [Validators.required, Validators.maxLength(10)]],
     name: ['', Validators.required],
     street: ['', Validators.required],
     city: ['', Validators.required],
@@ -218,30 +217,7 @@ export class SettingsComponent implements OnInit {
   }
 
   openAddWarehouseDialog() {
-    this.isEditMode.set(false);
-    this.currentWarehouseId = null;
     this.warehouseForm.reset({ timezone: 'UTC', latitude: 0, longitude: 0, totalAreaM2: 0, usableAreaM2: 0, ceilingHeightM: 0 });
-    this.displayWarehouseDialog.set(true);
-  }
-
-  editWarehouse(warehouse: Warehouse) {
-    this.isEditMode.set(true);
-    this.currentWarehouseId = warehouse.id;
-    this.warehouseForm.patchValue({
-      code: warehouse.code,
-      name: warehouse.name,
-      street: warehouse.address.street,
-      city: warehouse.address.city,
-      region: warehouse.address.region,
-      postalCode: warehouse.address.postalCode,
-      country: warehouse.address.country,
-      latitude: warehouse.address.coordinates.latitude,
-      longitude: warehouse.address.coordinates.longitude,
-      totalAreaM2: warehouse.dimensions.totalAreaM2,
-      usableAreaM2: warehouse.dimensions.usableAreaM2,
-      ceilingHeightM: warehouse.dimensions.ceilingHeightM,
-      timezone: warehouse.timezone,
-    });
     this.displayWarehouseDialog.set(true);
   }
 
@@ -250,35 +226,13 @@ export class SettingsComponent implements OnInit {
 
     const formData = this.warehouseForm.value as any;
 
-    if (this.isEditMode() && this.currentWarehouseId) {
-      this.settingsService.updateWarehouse(this.currentWarehouseId, formData).subscribe({
-        next: () => {
-          this.messageService.add({
-            severity: 'success',
-            summary: 'Success',
-            detail: 'Warehouse updated successfully',
-          });
-          this.displayWarehouseDialog.set(false);
-          this.loadWarehouses();
-        },
-        error: (err) => {
-          console.error('Error updating warehouse:', err);
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Error',
-            detail: 'Failed to update warehouse',
-            life: 5000
-          });
-        }
-      });
-    } else {
-      this.settingsService.createWarehouse(formData).subscribe({
-        next: () => {
-          this.messageService.add({
-            severity: 'success',
-            summary: 'Success',
-            detail: 'Warehouse created successfully',
-          });
+    this.settingsService.createWarehouse(formData).subscribe({
+      next: () => {
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Success',
+          detail: 'Warehouse created successfully',
+        });
           this.displayWarehouseDialog.set(false);
           this.loadWarehouses();
         },
@@ -292,36 +246,6 @@ export class SettingsComponent implements OnInit {
           });
         }
       });
-    }
-  }
-
-  deleteWarehouse(warehouse: Warehouse) {
-    this.confirmService.confirm({
-      message: `Delete warehouse "${warehouse.name}"?`,
-      header: 'Confirm',
-      icon: 'pi pi-exclamation-triangle',
-      accept: () => {
-        this.settingsService.deleteWarehouse(warehouse.id).subscribe({
-          next: () => {
-            this.messageService.add({
-              severity: 'success',
-              summary: 'Success',
-              detail: 'Warehouse deleted successfully',
-            });
-            this.loadWarehouses();
-          },
-          error: (err) => {
-            console.error('Error deleting warehouse:', err);
-            this.messageService.add({
-              severity: 'error',
-              summary: 'Error',
-              detail: 'Failed to delete warehouse',
-              life: 5000
-            });
-          }
-        });
-      }
-    });
   }
 
   getStatusSeverity(status: string): 'success' | 'secondary' | 'info' | 'warning' | 'danger' {
