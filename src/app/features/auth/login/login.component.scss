@@ -1,4 +1,4 @@
-.login-page { min-height: 100dvh; display: grid; place-items: center; padding: 2rem 1rem; background: #f6f6f6; border-block-start: 5px solid var(--brand-primary); }
+.login-page { min-height: var(--viewport-height); display: grid; place-items: center; padding: 2rem 1rem; background: #f6f6f6; border-block-start: 5px solid var(--brand-primary); }
 .login-bg { display: none; }
 .login-container { width: min(100%, 460px); background: #fff; border: 1px solid var(--surface-border); border-radius: 16px; padding: clamp(1.5rem, 5vw, 2.5rem); box-shadow: 0 16px 48px rgb(0 0 0 / 5%); }
 .login-logo { display: flex; flex-direction: column; align-items: flex-start; gap: .7rem; margin-bottom: 2rem; }

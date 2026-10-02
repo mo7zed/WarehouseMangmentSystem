@@ -1,4 +1,4 @@
-.wms-layout { min-height: 100dvh; background: var(--surface-ground); }
+.wms-layout { min-height: var(--viewport-height); background: var(--surface-ground); }
 .wms-content { min-width: 0; margin-inline-start: var(--sidebar-width); transition: margin-inline-start 200ms ease; }
 .wms-main { min-width: 0; padding: var(--content-padding); padding-block-start: calc(var(--topbar-height) + var(--content-padding)); }
 @media (max-width: 768px) { .wms-content { margin-inline-start: 0; } }
